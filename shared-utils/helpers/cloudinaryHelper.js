@@ -1,6 +1,8 @@
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
-const { logger } = require('../../shared-utils'); // logger'ı da dahil edelim
+
+// Döngüsel import'u engelle - logger'ı doğrudan require et
+const logger = require('../logger');
 
 let isConfigured = false;
 

@@ -1,34 +1,28 @@
 version: '3.8'
 
-# Servislerimizi (uygulamalarımızı) burada tanımlıyoruz.
 services:
-  # RabbitMQ Mesaj Kuyruğu Servisi
-  # Servislerin birbiriyle haberleşmesini sağlayacak postacı.
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: rentacar-rabbitmq
     restart: unless-stopped
     ports:
-      - "5672:5672"     # Uygulamaların bağlanacağı port
-      - "15672:15672"   # Yönetim arayüzü (tarayıcıdan görmek için)
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER} # .env dosyasından alınacak
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS} # .env dosyasından alınacak
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     networks:
       - rentacar-network
 
-  # Auth Servisi (Kullanıcı İşlemleri)
-  # Kayıt, giriş gibi işlemleri yönetecek mikroservisimiz.
   auth-service:
     build:
-      context: . # Dockerfile'ın bulunduğu klasör
+      context: .
       dockerfile: ./services/auth-service/Dockerfile
     container_name: rentacar-auth-service
     restart: unless-stopped
     ports:
-      - "5001:5001" # Lokal port 5001'i container'ın 5001 portuna yönlendir
+      - "5001:5001"
     environment:
-      # Ortam değişkenleri ana .env dosyasından alınacak
       MONGODB_URI: ${MONGODB_URI}
       PORT: 5001
       JWT_SECRET: ${JWT_SECRET}
@@ -38,17 +32,19 @@ services:
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
     depends_on:
-      - rabbitmq # auth-service'in başlamadan önce rabbitmq'nun başlamasını bekle
+      - rabbitmq
     networks:
       - rentacar-network
     volumes:
-      # Kodda yaptığımız değişikliklerin anında container'a yansıması için (geliştirme ortamı için)
-      - ./services/auth-service:/app
+      # Development için sadece kaynak kodu mount et
+      - ./services/auth-service/controllers:/app/controllers
+      - ./services/auth-service/models:/app/models
+      - ./services/auth-service/routes:/app/routes
+      - ./services/auth-service/server.js:/app/server.js
       - ./shared-utils:/app/shared-utils
-      # Bu satır, container içindeki node_modules'ın üzerine yazılmasını engeller
+      # node_modules'ı korumak için
       - /app/node_modules
 
-# Servislerin birbiriyle iletişim kurmasını sağlayan sanal ağ
 networks:
   rentacar-network:
     driver: bridge

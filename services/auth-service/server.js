@@ -3,11 +3,13 @@ require('dotenv').config(); // .env dosyasını en başta yükle
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
+// Relative path kullanarak shared-utils'ı import et
 const {
   logger,
   middleware,
   helpers,
-} = require('@rent-a-car/shared-utils');
+} = require('./shared-utils');
 
 const { ErrorHandler } = middleware;
 const { CloudinaryHelper } = helpers;

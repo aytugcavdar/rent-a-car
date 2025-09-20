@@ -1,7 +1,9 @@
 const express = require('express');
 const multer = require('multer');
 const AuthController = require('../controllers/authController');
-const { validators, middleware } = require('@rent-a-car/shared-utils');
+
+// Relative path kullan
+const { validators, middleware } = require('../shared-utils');
 
 const { UserValidators } = validators;
 const { ValidationMiddleware } = middleware; // Yeni middleware'imizi import ediyoruz

@@ -1,11 +1,13 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+
+// Relative path kullan
 const {
   middleware: { asyncHandler },
   helpers: { ResponseFormatter, PasswordUtils, CloudinaryHelper },
   constants: { httpStatus },
   logger,
-} = require('@rent-a-car/shared-utils');
+} = require('../shared-utils');
 
 /**
  * Verilen kullanıcı bilgileriyle bir JWT oluşturur.

@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
-const { helpers } = require('@rent-a-car/shared-utils');
+
+// Relative path kullan
+const { helpers } = require('../shared-utils');
 const { PasswordUtils } = helpers;
 
 const userSchema = new mongoose.Schema({
