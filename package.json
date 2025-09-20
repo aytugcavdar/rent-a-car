@@ -1,0 +1,9 @@
+{
+  "name": "rent-a-car-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "shared-utils"
+  ]
+}

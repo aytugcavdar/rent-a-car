@@ -1,15 +1,14 @@
-// 1. Gerekli kütüphaneleri ve modülleri import et
 require('dotenv').config(); // .env dosyasını en başta yükle
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// Relative path kullanarak shared-utils'ı import et
+// Relative path yerine paket adını kullan
 const {
   logger,
   middleware,
   helpers,
-} = require('./shared-utils');
+} = require('@rent-a-car/shared-utils');
 
 const { ErrorHandler } = middleware;
 const { CloudinaryHelper } = helpers;

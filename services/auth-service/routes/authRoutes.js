@@ -3,7 +3,7 @@ const multer = require('multer');
 const AuthController = require('../controllers/authController');
 
 // Relative path kullan
-const { validators, middleware } = require('../shared-utils');
+const { validators, middleware } = require('@rent-a-car/shared-utils');
 
 const { UserValidators } = validators;
 const { ValidationMiddleware } = middleware; // Yeni middleware'imizi import ediyoruz

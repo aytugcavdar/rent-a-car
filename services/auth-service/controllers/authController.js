@@ -7,7 +7,7 @@ const {
   helpers: { ResponseFormatter, PasswordUtils, CloudinaryHelper },
   constants: { httpStatus },
   logger,
-} = require('../shared-utils');
+} = require('@rent-a-car/shared-utils');
 
 /**
  * Verilen kullanıcı bilgileriyle bir JWT oluşturur.
