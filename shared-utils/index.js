@@ -1,8 +1,8 @@
 module.exports = {
-  constants: require('./constants'),
-  helpers: require('./helpers'),
-  logger: require('./logger'),         // <-- YENİ
+  logger: require('./logger'),
   middleware: require('./middleware'),
-  rabbitmq: require('./rabbitmq'),     // <-- YENİ
-  validators: require('./validators')  // <-- YENİ
+  helpers: require('./helpers'),
+  constants: require('./constants'),
+  validators: require('./validators'),
+  rabbitmq: require('./rabbitmq')
 };
