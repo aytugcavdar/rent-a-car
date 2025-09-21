@@ -4,19 +4,28 @@ FROM node:18-alpine
 # Uygulama için çalışma dizini oluştur
 WORKDIR /app
 
-# Önce tüm package.json dosyalarını kopyala. Bu sayede sadece bağımlılıklar
-# değiştiğinde "npm install" adımı tekrar çalışır (Docker katman önbelleği).
+# Önce root package.json'u kopyala ve workspace'leri kur
 COPY package*.json ./
 COPY shared-utils/package*.json ./shared-utils/
 COPY services/auth-service/package*.json ./services/auth-service/
 
-# Kök dizinden tüm workspace bağımlılıklarını kur.
-# Bu komut, node_modules/@rent-a-car/shared-utils sembolik linkini oluşturur.
+# Workspace bağımlılıklarını kur
 RUN npm install
 
-# Bağımlılıklar kurulduktan sonra projenin tüm kodunu kopyala.
-COPY . .
+# Shared-utils kodlarını kopyala
+COPY shared-utils/ ./shared-utils/
 
-# Uygulamayı, node_modules'un bulunduğu kök dizinden başlat.
-# Bu sayede require('@rent-a-car/shared-utils') doğru şekilde çözümlenir.
-CMD [ "node", "services/auth-service/server.js" ]
+# Auth service kodlarını kopyala
+COPY services/auth-service/ ./services/auth-service/
+
+# Node_modules'daki symlink'i manuel olarak oluştur
+RUN ln -sf /app/shared-utils /app/node_modules/@rent-a-car/shared-utils
+
+# Auth service dizinine geç
+WORKDIR /app/services/auth-service
+
+# Port'u expose et
+EXPOSE 5001
+
+# Uygulamayı başlat (root dizinden çalıştır)
+CMD ["node", "/app/services/auth-service/server.js"]

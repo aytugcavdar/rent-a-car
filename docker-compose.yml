@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # 🐰 Message Queue
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: rentacar-rabbitmq
@@ -14,14 +15,34 @@ services:
     networks:
       - rentacar-network
 
+  # 🚪 API Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: ./gateway/Dockerfile
+    container_name: rentacar-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"  # Main entry point
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: http://rentacar-auth-service:5001
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      NODE_ENV: ${NODE_ENV:-development}
+    depends_on:
+      - auth-service
+    networks:
+      - rentacar-network
+
+  # 🔐 Authentication Service
   auth-service:
     build:
       context: .
       dockerfile: ./services/auth-service/Dockerfile
     container_name: rentacar-auth-service
     restart: unless-stopped
-    ports:
-      - "5001:5001"
+    expose:
+      - "5001"  # Internal port only
     environment:
       MONGODB_URI: ${MONGODB_URI}
       PORT: 5001
@@ -35,15 +56,6 @@ services:
       - rabbitmq
     networks:
       - rentacar-network
-    volumes:
-      # Development için sadece kaynak kodu mount et
-      - ./services/auth-service/controllers:/app/controllers
-      - ./services/auth-service/models:/app/models
-      - ./services/auth-service/routes:/app/routes
-      - ./services/auth-service/server.js:/app/server.js
-      - ./shared-utils:/app/shared-utils
-      # node_modules'ı korumak için
-      - /app/node_modules
 
 networks:
   rentacar-network:

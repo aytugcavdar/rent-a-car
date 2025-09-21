@@ -4,6 +4,19 @@
   "private": true,
   "workspaces": [
     "services/*",
-    "shared-utils"
-  ]
+    "shared-utils",
+    "gateway"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "build": "docker-compose build",
+    "start": "docker-compose up",
+    "dev": "docker-compose up --build",
+    "test": "node test-gateway.js",
+    "gateway:dev": "cd gateway && npm run dev",
+    "gateway:start": "cd gateway && npm start"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
 }

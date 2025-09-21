@@ -27,6 +27,12 @@ app.use(express.json()); // Gelen JSON body'leri parse et
 // 5. API Rotalarını tanımla
 app.use('/api/auth', authRoutes);
 
+app.get('/', (req, res) => {
+  res.send('Auth Service is running');
+  req.end();
+  
+});
+
 // 6. Hata Yönetimi Middleware'leri
 app.use(ErrorHandler.notFound); // Bulunamayan rotalar için
 app.use(ErrorHandler.handle);   // Genel hata yakalayıcı
