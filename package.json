@@ -2,21 +2,62 @@
   "name": "rent-a-car-monorepo",
   "version": "1.0.0",
   "private": true,
+  "description": "Rent-a-Car Microservices Platform",
   "workspaces": [
     "services/*",
     "shared-utils",
     "gateway"
   ],
   "scripts": {
-    "install:all": "npm install",
+    "// === MAIN COMMANDS ===": "",
+    "start": "docker-compose up -d && echo '🎉 Services started! Gateway: http://localhost:3000'",
+    "start:dev": "docker-compose up --build",
+    "stop": "docker-compose down",
+    "restart": "npm run stop && npm run start",
+    
+    "// === DEVELOPMENT ===": "",
+    "dev": "npm run start:dev",
     "build": "docker-compose build",
-    "start": "docker-compose up",
-    "dev": "docker-compose up --build",
-    "test": "node test-gateway.js",
+    "clean": "docker-compose down -v --rmi all && docker system prune -f",
+    
+    "// === MONITORING ===": "",
+    "logs": "docker-compose logs -f",
+    "logs:gateway": "docker-compose logs -f gateway",
+    "logs:auth": "docker-compose logs -f auth-service",
+    "logs:rabbitmq": "docker-compose logs -f rabbitmq",
+    "status": "docker-compose ps",
+    
+    "// === TESTING ===": "",
+    "test": "node test-complete-system.js",
+    "test:auth": "node test-auth.js",
+    "health": "curl -f http://localhost:3000/health || echo '❌ Services not ready'",
+    
+    "// === UTILITIES ===": "",
+    "install:all": "npm install",
+    "env:setup": "cp .env.example .env && echo '📝 Please update .env with your credentials'",
+    "docker:clean": "docker system prune -f",
+    "docker:reset": "npm run clean && npm run build",
+    
+    "// === SERVICE SPECIFIC ===": "",
     "gateway:dev": "cd gateway && npm run dev",
-    "gateway:start": "cd gateway && npm start"
+    "gateway:start": "cd gateway && npm start",
+    "auth:dev": "cd services/auth-service && npm run dev"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
-  }
+    "nodemon": "^3.0.1",
+    "axios": "^1.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "microservices",
+    "rent-a-car",
+    "nodejs",
+    "docker",
+    "api-gateway"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }

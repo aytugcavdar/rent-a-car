@@ -1,0 +1,21 @@
+{
+  "name": "payment-service",
+  "version": "1.0.0",
+  "description": "Payment processing service for rent-a-car application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@rent-a-car/shared-utils": "1.0.0",
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "axios": "^1.5.0",
+    "joi": "^17.10.0",
+    "stripe": "^13.10.0",
+    "iyzipay": "^2.0.59"
+  }
+}

@@ -12,6 +12,25 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - rentacar-network
+
+  # 🗄️ MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: rentacar-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - rentacar-network
 
@@ -27,10 +46,18 @@ services:
     environment:
       PORT: 3000
       AUTH_SERVICE_URL: http://rentacar-auth-service:5001
+      CAR_SERVICE_URL: http://rentacar-car-service:5002
+      BOOKING_SERVICE_URL: http://rentacar-booking-service:5003
+      PAYMENT_SERVICE_URL: http://rentacar-payment-service:5004
+      NOTIFICATION_SERVICE_URL: http://rentacar-notification-service:5005
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
       NODE_ENV: ${NODE_ENV:-development}
     depends_on:
       - auth-service
+      - car-service
+      - booking-service
+      - payment-service
+      - notification-service
     networks:
       - rentacar-network
 
@@ -42,9 +69,9 @@ services:
     container_name: rentacar-auth-service
     restart: unless-stopped
     expose:
-      - "5001"  # Internal port only
+      - "5001"
     environment:
-      MONGODB_URI: ${MONGODB_URI}
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME}?authSource=admin
       PORT: 5001
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRE: ${JWT_EXPIRE}
@@ -53,10 +80,203 @@ services:
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
     depends_on:
+      - mongodb
       - rabbitmq
     networks:
       - rentacar-network
 
+  # 🚗 Car Service
+  car-service:
+    build:
+      context: .
+      dockerfile: ./services/car-service/Dockerfile
+    container_name: rentacar-car-service
+    restart: unless-stopped
+    expose:
+      - "5002"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME}?authSource=admin
+      PORT: 5002
+      JWT_SECRET: ${JWT_SECRET}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - rentacar-network
+
+  # 📅 Booking Service
+  booking-service:
+    build:
+      context: .
+      dockerfile: ./services/booking-service/Dockerfile
+    container_name: rentacar-booking-service
+    restart: unless-stopped
+    expose:
+      - "5003"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME}?authSource=admin
+      PORT: 5003
+      JWT_SECRET: ${JWT_SECRET}
+      CAR_SERVICE_URL: http://rentacar-car-service:5002
+      PAYMENT_SERVICE_URL: http://rentacar-payment-service:5004
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - car-service
+    networks:
+      - rentacar-network
+
+  # 💳 Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./services/payment-service/Dockerfile
+    container_name: rentacar-payment-service
+    restart: unless-stopped
+    expose:
+      - "5004"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME}?authSource=admin
+      PORT: 5004
+      JWT_SECRET: ${JWT_SECRET}
+      BOOKING_SERVICE_URL: http://rentacar-booking-service:5003
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      
+      # Payment Gateway Configurations
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      IYZICO_API_KEY: ${IYZICO_API_KEY}
+      IYZICO_SECRET_KEY: ${IYZICO_SECRET_KEY}
+      IYZICO_BASE_URL: ${IYZICO_BASE_URL:-https://sandbox-api.iyzipay.com}
+      
+      # Bank Integration (Optional)
+      GARANTI_TERMINAL_ID: ${GARANTI_TERMINAL_ID}
+      GARANTI_MERCHANT_ID: ${GARANTI_MERCHANT_ID}
+      GARANTI_PROVISION_PASSWORD: ${GARANTI_PROVISION_PASSWORD}
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - rentacar-network
+
+  # 📧 Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification-service/Dockerfile
+    container_name: rentacar-notification-service
+    restart: unless-stopped
+    expose:
+      - "5005"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME}?authSource=admin
+      PORT: 5005
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      
+      # Email Configuration
+      EMAIL_SERVICE: ${EMAIL_SERVICE:-gmail}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
+      
+      # SMS Configuration
+      SMS_PROVIDER: ${SMS_PROVIDER:-twilio}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      
+      # Turkish SMS Provider (NetGSM, İletimerkezi etc.)
+      NETGSM_USERNAME: ${NETGSM_USERNAME}
+      NETGSM_PASSWORD: ${NETGSM_PASSWORD}
+      NETGSM_HEADER: ${NETGSM_HEADER}
+      
+      # Push Notification
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY}
+      APNS_KEY_ID: ${APNS_KEY_ID}
+      APNS_TEAM_ID: ${APNS_TEAM_ID}
+      APNS_PRIVATE_KEY: ${APNS_PRIVATE_KEY}
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - rentacar-network
+
+  # 🔍 Redis (Caching & Session Store)
+  redis:
+    image: redis:7.2-alpine
+    container_name: rentacar-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - rentacar-network
+
+  # 📊 Analytics Service (Optional - for reporting)
+  analytics-service:
+    build:
+      context: .
+      dockerfile: ./services/analytics-service/Dockerfile
+    container_name: rentacar-analytics-service
+    restart: unless-stopped
+    expose:
+      - "5006"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME}?authSource=admin
+      REDIS_URI: redis://:${REDIS_PASSWORD}@redis:6379
+      PORT: 5006
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - rentacar-network
+    profiles:
+      - analytics
+
+  # 🐘 PostgreSQL (Optional - for complex analytics)
+  postgres:
+    image: postgres:16-alpine
+    container_name: rentacar-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rentacar_analytics}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - rentacar-network
+    profiles:
+      - analytics
+
+volumes:
+  mongodb_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
 networks:
   rentacar-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
