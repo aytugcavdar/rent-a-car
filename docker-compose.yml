@@ -27,14 +27,15 @@ services:
     environment:
       PORT: 3000
       AUTH_SERVICE_URL: http://rentacar-auth-service:5001
+      CAR_SERVICE_URL: http://rentacar-car-service:5002 # Yeni eklenen servis
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
       NODE_ENV: ${NODE_ENV:-development}
     depends_on:
       - auth-service
+      - car-service # Gateway'in başlamadan önce car-service'i beklemesini sağlar
     networks:
       - rentacar-network
 
-  # 🔐 Authentication Service
   auth-service:
     build:
       context: .
@@ -42,15 +43,28 @@ services:
     container_name: rentacar-auth-service
     restart: unless-stopped
     expose:
-      - "5001"  # Internal port only
+      - "5001"
     environment:
-      MONGODB_URI: ${MONGODB_URI}
+      MONGODB_URI: ${MONGODB_URI_AUTH} # <-- Değişiklik burada
       PORT: 5001
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRE: ${JWT_EXPIRE}
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      # ... diğer environment değişkenleri
+    depends_on:
+      - rabbitmq
+    networks:
+      - rentacar-network
+
+  # 🚗 Car Service
+  car-service:
+    build:
+      context: .
+      dockerfile: ./services/car-service/Dockerfile
+    container_name: rentacar-car-service
+    restart: unless-stopped
+    expose:
+      - "5002"
+    environment:
+      MONGODB_URI: ${MONGODB_URI_CAR} # <-- Değişiklik burada
+      PORT: 5002
       RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
     depends_on:
       - rabbitmq

@@ -117,8 +117,8 @@ const authServiceProxy = createProxyMiddleware({
 
 app.use('/api/auth', authServiceProxy);
 
-// 🚗 Car Service Proxy (Gelecekte eklenecek)
-/*
+
+
 const carServiceProxy = createProxyMiddleware({
   target: process.env.CAR_SERVICE_URL || 'http://car-service:5002',
   changeOrigin: true,
@@ -127,7 +127,7 @@ const carServiceProxy = createProxyMiddleware({
   }
 });
 app.use('/api/cars', carServiceProxy);
-*/
+
 
 // 📝 Booking Service Proxy (Gelecekte eklenecek)
 /*
