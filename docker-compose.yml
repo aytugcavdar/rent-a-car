@@ -23,19 +23,22 @@ services:
     container_name: rentacar-gateway
     restart: unless-stopped
     ports:
-      - "3000:3000"  # Main entry point
+      - "3000:3000"
     environment:
       PORT: 3000
       AUTH_SERVICE_URL: http://rentacar-auth-service:5001
-      CAR_SERVICE_URL: http://rentacar-car-service:5002 # Yeni eklenen servis
+      CAR_SERVICE_URL: http://rentacar-car-service:5002
+      BOOKING_SERVICE_URL: http://rentacar-booking-service:5003
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
       NODE_ENV: ${NODE_ENV:-development}
     depends_on:
       - auth-service
-      - car-service # Gateway'in başlamadan önce car-service'i beklemesini sağlar
+      - car-service
+      - booking-service
     networks:
       - rentacar-network
 
+  # 🔐 Authentication Service
   auth-service:
     build:
       context: .
@@ -45,9 +48,14 @@ services:
     expose:
       - "5001"
     environment:
-      MONGODB_URI: ${MONGODB_URI_AUTH} # <-- Değişiklik burada
+      MONGODB_URI: ${MONGODB_URI_AUTH}
       PORT: 5001
-      # ... diğer environment değişkenleri
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE: ${JWT_EXPIRE}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
     depends_on:
       - rabbitmq
     networks:
@@ -63,14 +71,66 @@ services:
     expose:
       - "5002"
     environment:
-      MONGODB_URI: ${MONGODB_URI_CAR} # <-- Değişiklik burada
+      MONGODB_URI: ${MONGODB_URI_CAR}
       PORT: 5002
       RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
     depends_on:
       - rabbitmq
     networks:
       - rentacar-network
+      
+  # 📝 Booking Service
+  booking-service:
+    build:
+      context: .
+      dockerfile: ./services/booking-service/Dockerfile
+    container_name: rentacar-booking-service
+    restart: unless-stopped
+    expose:
+      - "5003"
+    environment:
+      MONGODB_URI: ${MONGODB_URI_BOOKING}
+      PORT: 5003
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      CAR_SERVICE_URL: http://rentacar-car-service:5002
+    depends_on:
+      - rabbitmq
+      - car-service
+    networks:
+      - rentacar-network
 
+  # 🔔 Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification-service/Dockerfile
+    container_name: rentacar-notification-service
+    restart: unless-stopped
+    environment:
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
+    depends_on:
+      - rabbitmq
+    networks:
+      - rentacar-network
+  # 💳 Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./services/payment-service/Dockerfile
+    container_name: rentacar-payment-service
+    restart: unless-stopped
+    environment:
+      MONGODB_URI: ${MONGODB_URI_PAYMENT}
+      RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    networks:
+      - rentacar-network
 networks:
   rentacar-network:
     driver: bridge

@@ -1,0 +1,14 @@
+{
+  "name": "notification-service",
+  "version": "1.0.0",
+  "description": "Handles sending notifications like emails and SMS",
+  "main": "consumer.js",
+  "scripts": {
+    "start": "node consumer.js",
+    "dev": "nodemon consumer.js"
+  },
+  "dependencies": {
+    "@rent-a-car/shared-utils": "*",
+    "dotenv": "^16.3.1"
+  }
+}
