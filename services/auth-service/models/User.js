@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema({
       required: [true, 'Ehliyet geçerlilik tarihi zorunludur.'],
     },
   },
+  phone: {
+    type: String,
+    required: [true, 'Telefon numarası zorunludur.'],
+    match: [
+      /^\+?[1-9]\d{1,14}$/,
+      'Lütfen geçerli bir telefon numarası giriniz.',
+    ],
+  },
   address: {
     type: String,
     required: [true, 'Adres alanı zorunludur.'],
@@ -116,7 +124,9 @@ userSchema.methods.toJSON = function() {
   delete userObject.__v; // Mongoose'un eklediği versiyon anahtarını kaldır
   return userObject;
 };
-
+userSchema.virtual('fullName').get(function() {
+  return `${this.name} ${this.surname}`;
+});
 // --- ÖNERİ 5: İndeksleme ---
 userSchema.index({ 'driverLicense.number': 1 });
 
