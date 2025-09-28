@@ -1,10 +1,10 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 
-// Relative path kullan
 const {
   middleware: { asyncHandler },
-  helpers: { ResponseFormatter, PasswordUtils, CloudinaryHelper },
+  helpers: { ResponseFormatter, PasswordUtils, CloudinaryHelper, EmailHelper },
   constants: { httpStatus },
   logger,
 } = require('@rent-a-car/shared-utils');
@@ -22,16 +22,32 @@ const generateToken = (user) => {
   );
 };
 
+/**
+ * Cookie ayarlarını döner
+ */
+const getCookieOptions = () => ({
+  expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict'
+});
+
+/**
+ * E-posta doğrulama token'ı oluşturur
+ */
+const generateEmailVerificationToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
 class AuthController {
   /**
-   * @desc    Yeni kullanıcı kaydı oluşturur, profil resmini yükler.
+   * @desc    Yeni kullanıcı kaydı oluşturur, profil resmini yükler ve doğrulama maili gönderir.
    * @route   POST /api/auth/register
    * @access  Public
    */
   static register = asyncHandler(async (req, res) => {
     // 1. İstekten gelen metin verilerini al
-    const { name, surname, email, password } = req.body;
-    // driverLicense ve address JSON string olarak geleceği için parse ediyoruz.
+    const { name, surname, email, password, phone } = req.body;
     const driverLicense = JSON.parse(req.body.driverLicense);
     const address = req.body.address;
 
@@ -45,8 +61,6 @@ class AuthController {
         logger.info(`Avatar Cloudinary'e yüklendi: ${avatarUrl}`);
       } catch (error) {
         logger.error('Cloudinary upload hatası:', error);
-        // Resim yükleme başarısız olursa, işlemi durdurup hata dönebiliriz.
-        // Bu, tutarlılığı sağlamak için daha iyi bir yaklaşımdır.
         return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(
           ResponseFormatter.error('Profil resmi yüklenirken bir hata oluştu.', httpStatus.INTERNAL_SERVER_ERROR)
         );
@@ -64,25 +78,73 @@ class AuthController {
       );
     }
 
-    // 4. Yeni kullanıcıyı oluştur (avatarUrl'i de ekleyerek)
+    // 4. E-posta doğrulama token'ı oluştur
+    const emailVerificationToken = generateEmailVerificationToken();
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 saat
+
+    // 5. Yeni kullanıcıyı oluştur
     const user = await User.create({
       name,
       surname,
       email,
       password,
+      phone,
       driverLicense,
       address,
-      avatarUrl, // Eğer resim yüklenmediyse bu null olacak ve modeldeki default avatar kullanılacak
+      avatarUrl,
+      emailVerificationToken,
+      emailVerificationExpires,
+      isEmailVerified: false
     });
 
-    // 5. JWT Token oluştur
+    // 6. Doğrulama maili gönder
+    try {
+      const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}&email=${email}`;
+      
+      await EmailHelper({
+        email: user.email,
+        subject: 'Rent-a-Car - E-posta Adresinizi Doğrulayın',
+        message: `
+Merhaba ${user.name} ${user.surname},
+
+Rent-a-Car sistemine hoş geldiniz! Hesabınızı aktifleştirmek için aşağıdaki bağlantıya tıklayarak e-posta adresinizi doğrulamanız gerekmektedir.
+
+Doğrulama Bağlantısı: ${verificationUrl}
+
+Bu bağlantı 24 saat geçerlidir.
+
+Eğer bu hesabı siz oluşturmadıysanız, bu e-postayı görmezden gelebilirsiniz.
+
+İyi günler dileriz,
+Rent-a-Car Ekibi
+        `
+      });
+
+      logger.info(`Doğrulama maili gönderildi: ${user.email}`);
+    } catch (error) {
+      logger.error('E-posta gönderme hatası:', error);
+      // E-posta gönderme başarısız olsa bile kayıt tamamlanır
+    }
+
+    // 7. JWT Token oluştur (ancak henüz e-posta doğrulanmadığı için sınırlı erişim)
     const token = generateToken(user);
+
+    // 8. Cookie ayarla
+    res.cookie('token', token, getCookieOptions());
 
     logger.info(`Yeni kullanıcı kaydoldu: ${user.email}`);
 
-    // 6. Başarılı cevap gönder
+    // 9. Başarılı cevap gönder
     res.status(httpStatus.CREATED).json(
-      ResponseFormatter.success({ user: user.toJSON(), token }, 'Kayıt başarılı.', httpStatus.CREATED)
+      ResponseFormatter.success(
+        { 
+          user: user.toJSON(), 
+          token,
+          message: 'E-posta adresinize gönderilen doğrulama bağlantısını kullanarak hesabınızı aktifleştirin.'
+        }, 
+        'Kayıt başarılı. Lütfen e-postanızı kontrol edin.', 
+        httpStatus.CREATED
+      )
     );
   });
 
@@ -104,9 +166,9 @@ class AuthController {
     
     // 2. Hesabın kilitli olup olmadığını kontrol et
     if (user.isLocked) {
-        return res.status(httpStatus.FORBIDDEN).json(
-            ResponseFormatter.error('Çok sayıda hatalı deneme. Hesabınız geçici olarak kilitlenmiştir.', httpStatus.FORBIDDEN)
-        );
+      return res.status(httpStatus.FORBIDDEN).json(
+        ResponseFormatter.error('Çok sayıda hatalı deneme. Hesabınız geçici olarak kilitlenmiştir.', httpStatus.FORBIDDEN)
+      );
     }
 
     // 3. Şifrelerin eşleşip eşleşmediğini kontrol et
@@ -119,17 +181,147 @@ class AuthController {
       );
     }
 
-    // 4. Başarılı giriş sonrası login denemelerini sıfırla
+    // 4. E-posta doğrulanmış mı kontrol et
+    if (!user.isEmailVerified) {
+      return res.status(httpStatus.FORBIDDEN).json(
+        ResponseFormatter.error('Lütfen önce e-posta adresinizi doğrulayın. Doğrulama maili spam klasörünüzde olabilir.', httpStatus.FORBIDDEN, {
+          needsEmailVerification: true,
+          email: user.email
+        })
+      );
+    }
+
+    // 5. Başarılı giriş sonrası login denemelerini sıfırla
     await user.resetLoginAttempts();
     
-    // 5. JWT Token oluştur
+    // 6. JWT Token oluştur
     const token = generateToken(user);
+    
+    // 7. Cookie ayarla
+    res.cookie('token', token, getCookieOptions());
     
     logger.info(`Kullanıcı giriş yaptı: ${user.email}`);
 
-    // 6. Başarılı cevap gönder
+    // 8. Başarılı cevap gönder
     res.status(httpStatus.OK).json(
       ResponseFormatter.success({ user: user.toJSON(), token }, 'Giriş başarılı.')
+    );
+  });
+
+  /**
+   * @desc    E-posta doğrulama
+   * @route   POST /api/auth/verify-email
+   * @access  Public
+   */
+  static verifyEmail = asyncHandler(async (req, res) => {
+    const { token, email } = req.body;
+
+    // 1. Token ve email ile kullanıcıyı bul
+    const user = await User.findOne({
+      email,
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(httpStatus.BAD_REQUEST).json(
+        ResponseFormatter.error('Geçersiz veya süresi dolmuş doğrulama token\'ı.', httpStatus.BAD_REQUEST)
+      );
+    }
+
+    // 2. E-posta adresini doğrulanmış olarak işaretle
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    logger.info(`E-posta doğrulandı: ${user.email}`);
+
+    // 3. Başarılı cevap gönder
+    res.status(httpStatus.OK).json(
+      ResponseFormatter.success({ verified: true }, 'E-posta adresiniz başarıyla doğrulandı.')
+    );
+  });
+
+  /**
+   * @desc    Doğrulama mailini yeniden gönder
+   * @route   POST /api/auth/resend-verification
+   * @access  Public
+   */
+  static resendVerificationEmail = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    // 1. Kullanıcıyı bul
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(httpStatus.NOT_FOUND).json(
+        ResponseFormatter.error('Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.', httpStatus.NOT_FOUND)
+      );
+    }
+
+    // 2. Zaten doğrulanmışsa
+    if (user.isEmailVerified) {
+      return res.status(httpStatus.BAD_REQUEST).json(
+        ResponseFormatter.error('E-posta adresiniz zaten doğrulanmış.', httpStatus.BAD_REQUEST)
+      );
+    }
+
+    // 3. Yeni doğrulama token'ı oluştur
+    const emailVerificationToken = generateEmailVerificationToken();
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    user.emailVerificationToken = emailVerificationToken;
+    user.emailVerificationExpires = emailVerificationExpires;
+    await user.save({ validateBeforeSave: false });
+
+    // 4. Doğrulama maili gönder
+    try {
+      const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}&email=${email}`;
+      
+      await EmailHelper({
+        email: user.email,
+        subject: 'Rent-a-Car - E-posta Doğrulama (Yeniden Gönderim)',
+        message: `
+Merhaba ${user.name} ${user.surname},
+
+E-posta doğrulama talebiniz alındı. Hesabınızı aktifleştirmek için aşağıdaki bağlantıya tıklayın:
+
+Doğrulama Bağlantısı: ${verificationUrl}
+
+Bu bağlantı 24 saat geçerlidir.
+
+İyi günler dileriz,
+Rent-a-Car Ekibi
+        `
+      });
+
+      logger.info(`Doğrulama maili yeniden gönderildi: ${user.email}`);
+    } catch (error) {
+      logger.error('E-posta yeniden gönderme hatası:', error);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(
+        ResponseFormatter.error('E-posta gönderilirken bir hata oluştu.', httpStatus.INTERNAL_SERVER_ERROR)
+      );
+    }
+
+    // 5. Başarılı cevap gönder
+    res.status(httpStatus.OK).json(
+      ResponseFormatter.success({}, 'Doğrulama maili yeniden gönderildi.')
+    );
+  });
+
+  /**
+   * @desc    Çıkış yap ve cookie'yi temizle
+   * @route   POST /api/auth/logout
+   * @access  Private
+   */
+  static logout = asyncHandler(async (req, res) => {
+    res.cookie('token', 'none', {
+      expires: new Date(Date.now() + 10 * 1000),
+      httpOnly: true
+    });
+
+    res.status(httpStatus.OK).json(
+      ResponseFormatter.success({}, 'Başarıyla çıkış yapıldı.')
     );
   });
 }
