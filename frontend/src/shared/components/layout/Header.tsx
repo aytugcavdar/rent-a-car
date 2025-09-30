@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useState } from 'react'
-import { RootState } from '../../../app/store'
+import type { RootState } from '../../../app/store'
 import Container from './Container'
 
 const Header = () => {

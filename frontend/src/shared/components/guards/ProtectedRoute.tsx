@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { RootState } from '../../../app/store'
+import type { RootState } from '../../../app/store'
 
 /**
  * Sadece giriş yapmış kullanıcıların erişebileceği sayfalar için kullanılır
