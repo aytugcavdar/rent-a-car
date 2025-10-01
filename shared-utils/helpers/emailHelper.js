@@ -20,7 +20,7 @@ class EmailHelper {
       if (process.env.NODE_ENV !== 'production') {
         const testAccount = await nodemailer.createTestAccount();
         
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
           host: 'smtp.ethereal.email',
           port: 587,
           secure: false,
@@ -33,7 +33,7 @@ class EmailHelper {
         logger.info('📧 Email configured with Ethereal (test mode)');
       } else {
         // Production ortamında gerçek SMTP ayarları
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
           host: process.env.EMAIL_HOST,
           port: process.env.EMAIL_PORT || 587,
           secure: process.env.EMAIL_PORT == 465,
@@ -52,8 +52,9 @@ class EmailHelper {
       logger.info('✅ Email service verified successfully');
 
     } catch (error) {
-      logger.error('❌ Email configuration failed:', error);
+      logger.error('❌ Email configuration failed:', error.message);
       this.isConfigured = false;
+      throw error;
     }
   }
 
@@ -66,34 +67,35 @@ class EmailHelper {
    * @param {string} options.html - E-posta mesajı (HTML)
    */
   async sendEmail(options) {
-    if (!this.isConfigured) {
-      await this.configure();
-    }
-
-    if (!this.isConfigured) {
-      throw new Error('Email service is not configured');
-    }
-
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@rent-a-car.com',
-      to: options.email,
-      subject: options.subject,
-      text: options.message,
-      html: options.html || options.message?.replace(/\n/g, '<br>'),
-    };
-
     try {
+      if (!this.isConfigured) {
+        await this.configure();
+      }
+
+      if (!this.isConfigured) {
+        throw new Error('Email service is not configured');
+      }
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'Rent-a-Car <noreply@rent-a-car.com>',
+        to: options.email,
+        subject: options.subject,
+        text: options.message,
+        html: options.html || options.message?.replace(/\n/g, '<br>'),
+      };
+
       const info = await this.transporter.sendMail(mailOptions);
       
       // Test modunda preview URL'ini logla
       if (process.env.NODE_ENV !== 'production') {
-        logger.info('📧 Test email sent. Preview URL: ' + nodemailer.getTestMessageUrl(info));
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        logger.info(`📧 Test email sent. Preview URL: ${previewUrl}`);
       }
       
       logger.info(`📧 Email sent successfully to ${options.email}: ${info.messageId}`);
       return info;
     } catch (error) {
-      logger.error(`❌ Error sending email to ${options.email}:`, error);
+      logger.error(`❌ Error sending email to ${options.email}:`, error.message);
       throw error;
     }
   }
@@ -180,7 +182,7 @@ Rent-a-Car Ekibi
   }
 
   /**
-   * Şifre sıfırlama e-postası şablonu (gelecekte kullanım için)
+   * Şifre sıfırlama e-postası şablonu
    */
   getPasswordResetTemplate(user, resetUrl) {
     const html = `

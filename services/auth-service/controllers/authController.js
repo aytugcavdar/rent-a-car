@@ -11,8 +11,6 @@ const {
 
 /**
  * Verilen kullanıcı bilgileriyle bir JWT oluşturur.
- * @param {object} user Kullanıcı objesi.
- * @returns {string} Oluşturulan JWT.
  */
 const generateToken = (user) => {
   return jwt.sign(
@@ -26,7 +24,7 @@ const generateToken = (user) => {
  * Cookie ayarlarını döner
  */
 const getCookieOptions = () => {
-  const expiresInDays = parseInt(process.env.JWT_COOKIE_EXPIRE, 10) || 30; // Varsayılan olarak 30 gün
+  const expiresInDays = parseInt(process.env.JWT_COOKIE_EXPIRE, 10) || 30;
 
   return {
     expires: new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000),
@@ -50,12 +48,11 @@ class AuthController {
    * @access  Public
    */
   static register = asyncHandler(async (req, res) => {
-    // 1. İstekten gelen metin verilerini al (JSON.parse kaldırıldı)
     const { name, surname, email, password, phone, driverLicense, address } = req.body;
     console.log('Kayıt isteği alındı:', { name, surname, email, phone, driverLicense, address });
     let avatarUrl = null;
 
-    // 2. Eğer bir dosya (profil resmi) yüklendiyse, onu Cloudinary'e yükle
+    // Profil resmi yükleme
     if (req.file) {
       try {
         const result = await CloudinaryHelper.uploadFromBuffer(req.file.buffer, 'rent-a-car/avatars');
@@ -69,7 +66,7 @@ class AuthController {
       }
     }
 
-    // 3. E-posta'nın veya ehliyet numarasının daha önce alınıp alınmadığını kontrol et
+    // E-posta veya ehliyet kontrolü
     const existingUser = await User.findOne({
       $or: [{ email }, { 'driverLicense.number': driverLicense.number }],
     });
@@ -80,11 +77,11 @@ class AuthController {
       );
     }
 
-    // 4. E-posta doğrulama token'ı oluştur
+    // E-posta doğrulama token'ı oluştur
     const emailVerificationToken = generateEmailVerificationToken();
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 saat
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // 5. Yeni kullanıcıyı oluştur
+    // Yeni kullanıcı oluştur
     const user = await User.create({
       name,
       surname,
@@ -99,45 +96,34 @@ class AuthController {
       isEmailVerified: false
     });
 
-    // 6. Doğrulama maili gönder (Doğru kullanım ile güncellendi)
+    // Doğrulama maili gönder (DÜZELTİLMİŞ)
     try {
       const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}&email=${email}`;
+      
+      const emailTemplate = EmailHelper.getWelcomeEmailTemplate(user, verificationUrl);
       
       await EmailHelper.sendEmail({
         email: user.email,
         subject: 'Rent-a-Car - E-posta Adresinizi Doğrulayın',
-        message: `
-Merhaba ${user.name} ${user.surname},
-
-Rent-a-Car sistemine hoş geldiniz! Hesabınızı aktifleştirmek için aşağıdaki bağlantıya tıklayarak e-posta adresinizi doğrulamanız gerekmektedir.
-
-Doğrulama Bağlantısı: ${verificationUrl}
-
-Bu bağlantı 24 saat geçerlidir.
-
-Eğer bu hesabı siz oluşturmadıysanız, bu e-postayı görmezden gelebilirsiniz.
-
-İyi günler dileriz,
-Rent-a-Car Ekibi
-        `
+        message: emailTemplate.text,
+        html: emailTemplate.html
       });
 
       logger.info(`Doğrulama maili gönderildi: ${user.email}`);
     } catch (error) {
-      logger.error('E-posta gönderme hatası:', error);
-      // E-posta gönderme başarısız olsa bile kayıt tamamlanır, ancak hata loglanır.
-      // Sunucunun çökmemesi için hatayı burada yakalıyoruz.
+      logger.error('E-posta gönderme hatası:', error.message);
+      // E-posta hatası olsa bile kayıt devam eder
     }
 
-    // 7. JWT Token oluştur
+    // JWT Token oluştur
     const token = generateToken(user);
 
-    // 8. Cookie ayarla
+    // Cookie ayarla
     res.cookie('token', token, getCookieOptions());
 
     logger.info(`Yeni kullanıcı kaydoldu: ${user.email}`);
 
-    // 9. Başarılı cevap gönder
+    // Başarılı cevap
     res.status(httpStatus.CREATED).json(
       ResponseFormatter.success(
         { 
@@ -159,7 +145,6 @@ Rent-a-Car Ekibi
   static login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    // 1. Kullanıcıyı bul ve güvenlik alanlarını da sorguya dahil et
     const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
     if (!user) {
       return res.status(httpStatus.UNAUTHORIZED).json(
@@ -167,14 +152,12 @@ Rent-a-Car Ekibi
       );
     }
     
-    // 2. Hesabın kilitli olup olmadığını kontrol et
     if (user.isLocked) {
       return res.status(httpStatus.FORBIDDEN).json(
         ResponseFormatter.error('Çok sayıda hatalı deneme. Hesabınız geçici olarak kilitlenmiştir.', httpStatus.FORBIDDEN)
       );
     }
 
-    // 3. Şifrelerin eşleşip eşleşmediğini kontrol et
     const isPasswordMatch = await PasswordUtils.compare(password, user.password);
     
     if (!isPasswordMatch) {
@@ -184,7 +167,6 @@ Rent-a-Car Ekibi
       );
     }
 
-    // 4. E-posta doğrulanmış mı kontrol et
     if (!user.isEmailVerified) {
       return res.status(httpStatus.FORBIDDEN).json(
         ResponseFormatter.error('Lütfen önce e-posta adresinizi doğrulayın. Doğrulama maili spam klasörünüzde olabilir.', httpStatus.FORBIDDEN, {
@@ -194,18 +176,14 @@ Rent-a-Car Ekibi
       );
     }
 
-    // 5. Başarılı giriş sonrası login denemelerini sıfırla
     await user.resetLoginAttempts();
     
-    // 6. JWT Token oluştur
     const token = generateToken(user);
     
-    // 7. Cookie ayarla
     res.cookie('token', token, getCookieOptions());
     
     logger.info(`Kullanıcı giriş yaptı: ${user.email}`);
 
-    // 8. Başarılı cevap gönder
     res.status(httpStatus.OK).json(
       ResponseFormatter.success({ user: user.toJSON(), token }, 'Giriş başarılı.')
     );
@@ -219,7 +197,6 @@ Rent-a-Car Ekibi
   static verifyEmail = asyncHandler(async (req, res) => {
     const { token, email } = req.body;
 
-    // 1. Token ve email ile kullanıcıyı bul
     const user = await User.findOne({
       email,
       emailVerificationToken: token,
@@ -232,7 +209,6 @@ Rent-a-Car Ekibi
       );
     }
 
-    // 2. E-posta adresini doğrulanmış olarak işaretle
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
@@ -240,7 +216,6 @@ Rent-a-Car Ekibi
 
     logger.info(`E-posta doğrulandı: ${user.email}`);
 
-    // 3. Başarılı cevap gönder
     res.status(httpStatus.OK).json(
       ResponseFormatter.success({ verified: true }, 'E-posta adresiniz başarıyla doğrulandı.')
     );
@@ -254,7 +229,6 @@ Rent-a-Car Ekibi
   static resendVerificationEmail = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
-    // 1. Kullanıcıyı bul
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(httpStatus.NOT_FOUND).json(
@@ -262,14 +236,12 @@ Rent-a-Car Ekibi
       );
     }
 
-    // 2. Zaten doğrulanmışsa
     if (user.isEmailVerified) {
       return res.status(httpStatus.BAD_REQUEST).json(
         ResponseFormatter.error('E-posta adresiniz zaten doğrulanmış.', httpStatus.BAD_REQUEST)
       );
     }
 
-    // 3. Yeni doğrulama token'ı oluştur
     const emailVerificationToken = generateEmailVerificationToken();
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -277,36 +249,26 @@ Rent-a-Car Ekibi
     user.emailVerificationExpires = emailVerificationExpires;
     await user.save({ validateBeforeSave: false });
 
-    // 4. Doğrulama maili gönder
     try {
       const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}&email=${email}`;
       
-      await EmailHelper({
+      const emailTemplate = EmailHelper.getWelcomeEmailTemplate(user, verificationUrl);
+      
+      await EmailHelper.sendEmail({
         email: user.email,
         subject: 'Rent-a-Car - E-posta Doğrulama (Yeniden Gönderim)',
-        message: `
-Merhaba ${user.name} ${user.surname},
-
-E-posta doğrulama talebiniz alındı. Hesabınızı aktifleştirmek için aşağıdaki bağlantıya tıklayın:
-
-Doğrulama Bağlantısı: ${verificationUrl}
-
-Bu bağlantı 24 saat geçerlidir.
-
-İyi günler dileriz,
-Rent-a-Car Ekibi
-        `
+        message: emailTemplate.text,
+        html: emailTemplate.html
       });
 
       logger.info(`Doğrulama maili yeniden gönderildi: ${user.email}`);
     } catch (error) {
-      logger.error('E-posta yeniden gönderme hatası:', error);
+      logger.error('E-posta yeniden gönderme hatası:', error.message);
       return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(
         ResponseFormatter.error('E-posta gönderilirken bir hata oluştu.', httpStatus.INTERNAL_SERVER_ERROR)
       );
     }
 
-    // 5. Başarılı cevap gönder
     res.status(httpStatus.OK).json(
       ResponseFormatter.success({}, 'Doğrulama maili yeniden gönderildi.')
     );
