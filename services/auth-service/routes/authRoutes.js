@@ -56,16 +56,20 @@ router.post(
 );
 
 // POST /api/auth/forgot-password - Şifre sıfırlama talebi
+/* 
 router.post(
   '/forgot-password',
   ValidationMiddleware.validateRequest(UserValidators.forgotPasswordSchema),
   AuthController.forgotPassword
 );
+ */
 
 // POST /api/auth/logout - Çıkış yap
 router.post('/logout', AuthController.logout);
 
 // GET /api/auth/me - Kullanıcı bilgilerini getir (Authentication gerekli)
+/* 
 router.get('/me', AuthMiddleware.verifyToken, AuthController.getMe);
+ */
 
 module.exports = router;
