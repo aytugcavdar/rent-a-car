@@ -25,12 +25,16 @@ const generateToken = (user) => {
 /**
  * Cookie ayarlarını döner
  */
-const getCookieOptions = () => ({
-  expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict'
-});
+const getCookieOptions = () => {
+  const expiresInDays = parseInt(process.env.JWT_COOKIE_EXPIRE, 10) || 30; // Varsayılan olarak 30 gün
+
+  return {
+    expires: new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000),
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  };
+};
 
 /**
  * E-posta doğrulama token'ı oluşturur
@@ -46,11 +50,9 @@ class AuthController {
    * @access  Public
    */
   static register = asyncHandler(async (req, res) => {
-    // 1. İstekten gelen metin verilerini al
-    const { name, surname, email, password, phone } = req.body;
-    const driverLicense = JSON.parse(req.body.driverLicense);
-    const address = req.body.address;
-
+    // 1. İstekten gelen metin verilerini al (JSON.parse kaldırıldı)
+    const { name, surname, email, password, phone, driverLicense, address } = req.body;
+    console.log('Kayıt isteği alındı:', { name, surname, email, phone, driverLicense, address });
     let avatarUrl = null;
 
     // 2. Eğer bir dosya (profil resmi) yüklendiyse, onu Cloudinary'e yükle
@@ -97,11 +99,11 @@ class AuthController {
       isEmailVerified: false
     });
 
-    // 6. Doğrulama maili gönder
+    // 6. Doğrulama maili gönder (Doğru kullanım ile güncellendi)
     try {
       const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}&email=${email}`;
       
-      await EmailHelper({
+      await EmailHelper.sendEmail({
         email: user.email,
         subject: 'Rent-a-Car - E-posta Adresinizi Doğrulayın',
         message: `
@@ -123,10 +125,11 @@ Rent-a-Car Ekibi
       logger.info(`Doğrulama maili gönderildi: ${user.email}`);
     } catch (error) {
       logger.error('E-posta gönderme hatası:', error);
-      // E-posta gönderme başarısız olsa bile kayıt tamamlanır
+      // E-posta gönderme başarısız olsa bile kayıt tamamlanır, ancak hata loglanır.
+      // Sunucunun çökmemesi için hatayı burada yakalıyoruz.
     }
 
-    // 7. JWT Token oluştur (ancak henüz e-posta doğrulanmadığı için sınırlı erişim)
+    // 7. JWT Token oluştur
     const token = generateToken(user);
 
     // 8. Cookie ayarla

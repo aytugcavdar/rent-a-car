@@ -234,12 +234,4 @@ Rent-a-Car Ekibi
 }
 
 // Singleton instance
-const emailHelper = new EmailHelper();
-
-// Backward compatibility için eski API'yi destekle
-module.exports = async (options) => {
-  return await emailHelper.sendEmail(options);
-};
-
-// Yeni class-based API
-module.exports.EmailService = emailHelper;
+module.exports = new EmailHelper();
