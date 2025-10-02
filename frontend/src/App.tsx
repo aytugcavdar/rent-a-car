@@ -1,3 +1,4 @@
+// frontend/src/App.tsx
 import { Provider } from 'react-redux';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -20,7 +21,10 @@ import LoginPage from './features/auth/pages/Login';
 import RegisterPage from './features/auth/pages/Register';
 import VerifyEmailPage from './features/auth/pages/VerifyEmailPage';
 
-
+// Car Sayfaları
+import CarsPage from './features/cars/pages/CarList';
+import CarDetailPage from './features/cars/pages/CarDetail';
+// import CarComparePage from './features/cars/pages/CarComparePage';
 
 function App() {
   return (
@@ -34,25 +38,28 @@ function App() {
 
               {/* Sadece Giriş Yapmamış Kullanıcıların Erişebileceği Rotalar */}
               <Route element={<GuestRoute />}>
-                 <Route path="login" element={<LoginPage />} /> 
-                 <Route path="register" element={<RegisterPage />} />
-                  <Route path="verify-email" element={<VerifyEmailPage />} />
+                <Route path="login" element={<LoginPage />} /> 
+                <Route path="register" element={<RegisterPage />} />
+                <Route path="verify-email" element={<VerifyEmailPage />} />
               </Route>
+
+              {/* Public Car Rotaları - Herkes erişebilir */}
+              <Route path="cars" element={<CarsPage />} />
+              <Route path="cars/:id" element={<CarDetailPage />} />
 
               {/* Sadece Giriş Yapmış Kullanıcıların Erişebileceği Rotalar */}
               <Route element={<ProtectedRoute />}>
                 {/* <Route path="profile" element={<ProfilePage />} /> */}
                 {/* <Route path="bookings" element={<BookingsPage />} /> */}
+                {/* <Route path="bookings/new" element={<NewBookingPage />} /> */}
               </Route>
 
               {/* Sadece Admin Yetkisine Sahip Kullanıcıların Erişebileceği Rotalar */}
               <Route element={<AdminRoute />}>
                 {/* <Route path="admin/dashboard" element={<AdminDashboard />} /> */}
+                {/* <Route path="admin/cars" element={<AdminCarsPage />} /> */}
+                {/* <Route path="admin/cars/new" element={<AdminNewCarPage />} /> */}
               </Route>
-
-              {/* Diğer Sayfalar */}
-              {/* <Route path="cars" element={<CarsPage />} /> */}
-              {/* <Route path="cars/:id" element={<CarDetailPage />} /> */}
 
               {/* Bulunamayan Sayfalar İçin */}
               <Route path="*" element={<NotFound />} />
