@@ -18,6 +18,9 @@ import AdminRoute from './shared/components/guards/AdminRoute';
 // Auth Sayfaları
 import LoginPage from './features/auth/pages/Login';
 import RegisterPage from './features/auth/pages/Register';
+import VerifyEmailPage from './features/auth/pages/VerifyEmailPage';
+
+
 
 function App() {
   return (
@@ -33,6 +36,7 @@ function App() {
               <Route element={<GuestRoute />}>
                  <Route path="login" element={<LoginPage />} /> 
                  <Route path="register" element={<RegisterPage />} />
+                  <Route path="verify-email" element={<VerifyEmailPage />} />
               </Route>
 
               {/* Sadece Giriş Yapmış Kullanıcıların Erişebileceği Rotalar */}

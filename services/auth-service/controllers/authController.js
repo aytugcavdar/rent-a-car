@@ -98,7 +98,7 @@ class AuthController {
 
     // Doğrulama maili gönder (DÜZELTİLMİŞ)
     try {
-      const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}&email=${email}`;
+      const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${emailVerificationToken}&email=${email}`;
       
       const emailTemplate = EmailHelper.getWelcomeEmailTemplate(user, verificationUrl);
       
