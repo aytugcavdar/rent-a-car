@@ -289,6 +289,19 @@ class AuthController {
       ResponseFormatter.success({}, 'Başarıyla çıkış yapıldı.')
     );
   });
+  /**
+   * @desc    Tüm kullanıcıları getir (admin)
+   * @route   GET /api/auth/users
+   * @access  Private/Admin
+   */
+  static getAllUsers = asyncHandler(async (req, res) => {
+    // Şifre gibi hassas bilgileri dışarıda bırakarak tüm kullanıcıları bul
+    const users = await User.find({}).select('-password');
+
+    res.status(httpStatus.OK).json(
+      ResponseFormatter.success(users, 'Kullanıcılar başarıyla getirildi.')
+    );
+  });
 }
 
 module.exports = AuthController;

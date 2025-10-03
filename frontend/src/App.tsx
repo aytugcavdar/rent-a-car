@@ -24,6 +24,12 @@ import VerifyEmailPage from './features/auth/pages/VerifyEmailPage';
 // Car Sayfaları
 import CarsPage from './features/cars/pages/CarList';
 import CarDetailPage from './features/cars/pages/CarDetail';
+import AdminLayout from './features/admin/layout/AdminLayout';
+
+// Admin Sayfaları
+import UserManagementPage from './features/admin/pages/UserManagement';
+import CarManagementPage from './features/admin/pages/CarManagement';
+import AdminDashboard from './features/admin/pages/AdminDashboard';
 // import CarComparePage from './features/cars/pages/CarComparePage';
 
 function App() {
@@ -55,10 +61,13 @@ function App() {
               </Route>
 
               {/* Sadece Admin Yetkisine Sahip Kullanıcıların Erişebileceği Rotalar */}
-              <Route element={<AdminRoute />}>
-                {/* <Route path="admin/dashboard" element={<AdminDashboard />} /> */}
-                {/* <Route path="admin/cars" element={<AdminCarsPage />} /> */}
-                {/* <Route path="admin/cars/new" element={<AdminNewCarPage />} /> */}
+              <Route path="admin" element={<AdminLayout />}>
+                <Route element={<AdminRoute />}>
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="cars" element={<CarManagementPage />} /> {/* Senin menüne göre yolu güncelledim */}
+                      <Route path="users" element={<UserManagementPage />} /> {/* Senin menüne göre yolu güncelledim */}
+                      <Route path="bookings" element={<div>Rezervasyonlar Sayfası</div>} /> {/* Senin menüne göre yolu güncelledim */}
+                </Route>
               </Route>
 
               {/* Bulunamayan Sayfalar İçin */}

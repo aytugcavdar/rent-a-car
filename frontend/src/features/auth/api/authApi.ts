@@ -1,8 +1,19 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../../../app/store'
 
+
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+
+
+
 // API Response Types
-interface User {
+export interface User {
   _id: string
   name: string
   surname: string
@@ -59,7 +70,7 @@ export const authApi = createApi({
       return headers
     },
   }),
-  tagTypes: ['Auth'],
+  tagTypes: ['Auth','Users'],
   endpoints: (builder) => ({
     // Login
     login: builder.mutation<AuthResponse, LoginRequest>({
@@ -102,6 +113,10 @@ export const authApi = createApi({
       query: () => '/me',
       providesTags: ['Auth'],
     }),
+     getUsers: builder.query<ApiResponse<User[]>, void>({
+      query: () => '/users',
+      providesTags: ['Users'],
+    }),
 
     // Logout
     logout: builder.mutation<{ success: boolean; message: string }, void>({
@@ -120,4 +135,5 @@ export const {
   useResendVerificationMutation,
   useGetMeQuery,
   useLogoutMutation,
+  useGetUsersQuery,
 } = authApi
