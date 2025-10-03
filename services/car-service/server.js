@@ -10,8 +10,6 @@ const {
 } = require('@rent-a-car/shared-utils');
 
 const { ErrorHandler } = middleware;
-// Henüz rotamız yok, şimdilik yorum satırı olarak kalsın
-// const carRoutes = require('./routes/carRoutes');
 
 const app = express();
 

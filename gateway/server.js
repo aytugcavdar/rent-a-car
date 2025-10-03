@@ -163,9 +163,9 @@ app.get('/api', (req, res) => {
         health: 'GET /health - Gateway health check',
         status: 'GET /status - All services status',
         auth: 'POST /api/auth/* - Authentication service',
-        // cars: 'GET /api/cars/* - Car management service (Coming Soon)',
-        // bookings: 'GET /api/bookings/* - Booking service (Coming Soon)',
-        // payments: 'GET /api/payments/* - Payment service (Coming Soon)'
+        cars: 'GET /api/cars/* - Car management service (Coming Soon)',
+        bookings: 'GET /api/bookings/* - Booking service (Coming Soon)',
+        payments: 'GET /api/payments/* - Payment service (Coming Soon)'
       },
       documentation: 'https://api-docs.rent-a-car.com'
     }, 'API Gateway Information')

@@ -2,8 +2,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../../../app/store';
 
-// API base URL - .env'den gelecek
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * ARAÇ TİPLERİ
@@ -97,7 +95,7 @@ interface ApiResponse<T> {
 export const carsApi = createApi({
   reducerPath: 'carsApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${API_URL}/api/cars`,
+     baseUrl: '/api/cars',
     prepareHeaders: (headers, { getState }) => {
       // Token varsa header'a ekle (admin işlemleri için)
       const token = (getState() as RootState).auth.token;
