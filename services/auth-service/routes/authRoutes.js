@@ -71,6 +71,6 @@ router.post('/logout', AuthController.logout);
 /* 
 router.get('/me', AuthMiddleware.verifyToken, AuthController.getMe);
  */
-router.get('/users', AuthMiddleware.verifyToken, AuthMiddleware.isAdmin, AuthController.getAllUsers);
+router.get('/users', AuthMiddleware.verifyToken, AuthMiddleware.requireRole(['admin']), AuthController.getAllUsers);
 
 module.exports = router;
