@@ -1,57 +1,75 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useSelector, useDispatch } from 'react-redux'
-import { useState } from 'react'
-import type { RootState } from '../../../app/store'
-import Container from './Container'
+import { Link, NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { useAuth } from '../../../features/auth/hooks/useAuth';
+import Container from './Container';
 
 const Header = () => {
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
 
-  const handleLogout = () => {
-    // Logout işlemi (sonra authSlice'da implement edeceğiz)
-    // dispatch(logout())
-    navigate('/login')
-  }
+  // Menü linklerini yönetmek için bir dizi
+  const navLinks = [
+    { to: '/', text: 'Ana Sayfa' },
+    { to: '/cars', text: 'Araçlar' },
+    { to: '/bookings', text: 'Rezervasyonlarım', auth: true },
+    { to: '/admin/dashboard', text: 'Admin Paneli', auth: true, admin: true },
+  ];
+
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const handleLogout = async () => {
+    closeMobileMenu();
+    await logout();
+  };
+
+  // Dinamik olarak render edilecek navigasyon linkleri
+  const renderNavLinks = (isMobile = false) =>
+    navLinks
+      .filter((link) => !link.auth || isAuthenticated)
+      .filter((link) => !link.admin || user?.role === 'admin')
+      .map((link) => (
+        <NavLink
+          key={link.to}
+          to={link.to}
+          onClick={isMobile ? closeMobileMenu : undefined}
+          className={({ isActive }) =>
+            `transition-colors ${
+              isActive ? 'text-blue-600 font-semibold' : 'text-gray-700 hover:text-blue-600'
+            } ${isMobile ? 'block py-2' : ''}`
+          }
+        >
+          {link.text}
+        </NavLink>
+      ));
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
       <Container>
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2" onClick={closeMobileMenu}>
             <div className="bg-blue-600 text-white rounded-lg p-2">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                />
               </svg>
             </div>
             <span className="text-xl font-bold text-gray-900">Rent-a-Car</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-gray-700 hover:text-blue-600 transition-colors">
-              Ana Sayfa
-            </Link>
-            <Link to="/cars" className="text-gray-700 hover:text-blue-600 transition-colors">
-              Araçlar
-            </Link>
-            {isAuthenticated && (
-              <Link to="/bookings" className="text-gray-700 hover:text-blue-600 transition-colors">
-                Rezervasyonlarım
-              </Link>
-            )}
-          </nav>
+          <nav className="hidden md:flex items-center space-x-6">{renderNavLinks()}</nav>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <>
-                <Link 
-                  to="/profile" 
+                <Link
+                  to="/profile"
                   className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
                 >
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -90,6 +108,7 @@ const Header = () => {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            aria-label="Menüyü aç/kapat"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMobileMenuOpen ? (
@@ -104,48 +123,37 @@ const Header = () => {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t">
-            <nav className="flex flex-col space-y-4">
-              <Link to="/" className="text-gray-700 hover:text-blue-600" onClick={() => setIsMobileMenuOpen(false)}>
-                Ana Sayfa
-              </Link>
-              <Link to="/cars" className="text-gray-700 hover:text-blue-600" onClick={() => setIsMobileMenuOpen(false)}>
-                Araçlar
-              </Link>
-              {isAuthenticated && (
-                <>
-                  <Link to="/bookings" className="text-gray-700 hover:text-blue-600" onClick={() => setIsMobileMenuOpen(false)}>
-                    Rezervasyonlarım
-                  </Link>
-                  <Link to="/profile" className="text-gray-700 hover:text-blue-600" onClick={() => setIsMobileMenuOpen(false)}>
+            <nav className="flex flex-col space-y-4 mb-4">{renderNavLinks(true)}</nav>
+            <div className="border-t pt-4">
+              {isAuthenticated ? (
+                <div className="flex flex-col space-y-4">
+                  <Link to="/profile" className="text-gray-700 hover:text-blue-600" onClick={closeMobileMenu}>
                     Profilim
                   </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout()
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className="text-left text-red-600 hover:text-red-700"
-                  >
+                  <button onClick={handleLogout} className="text-left text-red-600 hover:text-red-700">
                     Çıkış Yap
                   </button>
-                </>
-              )}
-              {!isAuthenticated && (
-                <>
-                  <Link to="/login" className="text-gray-700 hover:text-blue-600" onClick={() => setIsMobileMenuOpen(false)}>
+                </div>
+              ) : (
+                <div className="flex flex-col space-y-4">
+                  <Link to="/login" className="text-gray-700 hover:text-blue-600" onClick={closeMobileMenu}>
                     Giriş Yap
                   </Link>
-                  <Link to="/register" className="text-blue-600 hover:text-blue-700 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link
+                    to="/register"
+                    className="text-blue-600 hover:text-blue-700 font-semibold"
+                    onClick={closeMobileMenu}
+                  >
                     Kayıt Ol
                   </Link>
-                </>
+                </div>
               )}
-            </nav>
+            </div>
           </div>
         )}
       </Container>
     </header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;
