@@ -24,13 +24,17 @@ import VerifyEmailPage from './features/auth/pages/VerifyEmailPage';
 // Car Sayfaları
 import CarsPage from './features/cars/pages/CarList';
 import CarDetailPage from './features/cars/pages/CarDetail';
+import CarComparePage from './features/cars/pages/CarComparePage';
+
+// Admin Layout
 import AdminLayout from './features/admin/layout/AdminLayout';
 
 // Admin Sayfaları
+import AdminDashboard from './features/admin/pages/AdminDashboard';
 import UserManagementPage from './features/admin/pages/UserManagement';
 import CarManagementPage from './features/admin/pages/CarManagement';
-import AdminDashboard from './features/admin/pages/AdminDashboard';
-// import CarComparePage from './features/cars/pages/CarComparePage';
+import NewCarPage from './features/admin/pages/NewCarPage';
+import EditCarPage from './features/admin/pages/EditCarPage';
 
 function App() {
   return (
@@ -41,41 +45,77 @@ function App() {
             {/* Ana Sayfa Düzeni (Header ve Footer içerir) */}
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Home />} />
-
+              
               {/* Sadece Giriş Yapmamış Kullanıcıların Erişebileceği Rotalar */}
               <Route element={<GuestRoute />}>
-                <Route path="login" element={<LoginPage />} /> 
+                <Route path="login" element={<LoginPage />} />
                 <Route path="register" element={<RegisterPage />} />
                 <Route path="verify-email" element={<VerifyEmailPage />} />
               </Route>
-
+              
               {/* Public Car Rotaları - Herkes erişebilir */}
               <Route path="cars" element={<CarsPage />} />
               <Route path="cars/:id" element={<CarDetailPage />} />
-
+              <Route path="cars/compare" element={<CarComparePage />} />
+              
               {/* Sadece Giriş Yapmış Kullanıcıların Erişebileceği Rotalar */}
               <Route element={<ProtectedRoute />}>
                 {/* <Route path="profile" element={<ProfilePage />} /> */}
                 {/* <Route path="bookings" element={<BookingsPage />} /> */}
                 {/* <Route path="bookings/new" element={<NewBookingPage />} /> */}
               </Route>
-
-              {/* Sadece Admin Yetkisine Sahip Kullanıcıların Erişebileceği Rotalar */}
-              <Route path="admin" element={<AdminLayout />}>
-                <Route element={<AdminRoute />}>
-                      <Route path="dashboard" element={<AdminDashboard />} />
-                      <Route path="cars" element={<CarManagementPage />} /> {/* Senin menüne göre yolu güncelledim */}
-                      <Route path="users" element={<UserManagementPage />} /> {/* Senin menüne göre yolu güncelledim */}
-                      <Route path="bookings" element={<div>Rezervasyonlar Sayfası</div>} /> {/* Senin menüne göre yolu güncelledim */}
-                </Route>
-              </Route>
-
+              
               {/* Bulunamayan Sayfalar İçin */}
               <Route path="*" element={<NotFound />} />
             </Route>
+
+            {/* Sadece Admin Yetkisine Sahip Kullanıcıların Erişebileceği Rotalar */}
+            <Route path="admin" element={<AdminLayout />}>
+              <Route element={<AdminRoute />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                
+                {/* Araç Yönetimi Rotaları */}
+                <Route path="cars" element={<CarManagementPage />} />
+                <Route path="cars/new" element={<NewCarPage />} />
+                <Route path="cars/edit/:id" element={<EditCarPage />} />
+                
+                {/* Kullanıcı Yönetimi */}
+                <Route path="users" element={<UserManagementPage />} />
+                
+                {/* Rezervasyon Yönetimi (Placeholder) */}
+                <Route path="bookings" element={<div className="p-6 bg-white rounded-lg shadow-md">
+                  <h1 className="text-2xl font-bold mb-4">Rezervasyonlar Sayfası</h1>
+                  <p className="text-gray-600">Bu sayfa yakında eklenecek...</p>
+                </div>} />
+              </Route>
+            </Route>
           </Routes>
         </BrowserRouter>
-        <Toaster position="top-right" />
+        
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: '#10B981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              duration: 4000,
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
       </PersistGate>
     </Provider>
   );
