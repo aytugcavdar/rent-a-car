@@ -73,6 +73,10 @@ services:
     environment:
       MONGODB_URI: ${MONGODB_URI_CAR}
       PORT: 5002
+      JWT_SECRET: ${JWT_SECRET}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
     depends_on:
       - rabbitmq
@@ -91,6 +95,7 @@ services:
     environment:
       MONGODB_URI: ${MONGODB_URI_BOOKING}
       PORT: 5003
+      JWT_SECRET: ${JWT_SECRET}
       RABBITMQ_URI: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       CAR_SERVICE_URL: http://rentacar-car-service:5002
     depends_on:

@@ -1,7 +1,7 @@
 // frontend/src/features/cars/components/forms/CarForm.tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Select, Button, Textarea } from '../../../../shared/components/ui/base';
+import { Input, Select, Button } from '../../../../shared/components/ui/base';
 import type { CreateCarDto } from '../../api/carsApi';
 
 interface CarFormProps {
@@ -10,6 +10,29 @@ interface CarFormProps {
   isLoading?: boolean;
   submitButtonText?: string;
 }
+
+// Backend'deki enum değerleri
+const AVAILABLE_FEATURES = [
+  { value: 'air_conditioning', label: 'Klima' },
+  { value: 'gps', label: 'GPS' },
+  { value: 'bluetooth', label: 'Bluetooth' },
+  { value: 'usb_port', label: 'USB Port' },
+  { value: 'aux_input', label: 'AUX Girişi' },
+  { value: 'cd_player', label: 'CD Çalar' },
+  { value: 'mp3_player', label: 'MP3 Çalar' },
+  { value: 'cruise_control', label: 'Hız Sabitleyici' },
+  { value: 'parking_sensors', label: 'Park Sensörü' },
+  { value: 'backup_camera', label: 'Geri Görüş Kamerası' },
+  { value: 'sunroof', label: 'Sunroof' },
+  { value: 'leather_seats', label: 'Deri Koltuk' },
+  { value: 'heated_seats', label: 'Isıtmalı Koltuk' },
+  { value: 'child_safety_locks', label: 'Çocuk Kilidi' },
+  { value: 'airbags', label: 'Hava Yastığı' },
+  { value: 'abs', label: 'ABS' },
+  { value: 'power_steering', label: 'Hidrolik Direksiyon' },
+  { value: 'power_windows', label: 'Elektrikli Camlar' },
+  { value: 'remote_locking', label: 'Uzaktan Kilit' }
+];
 
 const CarForm = ({ 
   initialData, 
@@ -44,7 +67,7 @@ const CarForm = ({
     },
   });
 
-  const [featuresInput, setFeaturesInput] = useState('');
+  const [selectedFeature, setSelectedFeature] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -69,25 +92,29 @@ const CarForm = ({
   };
 
   const handleAddFeature = () => {
-    if (featuresInput.trim()) {
+    if (selectedFeature && !formData.features?.includes(selectedFeature)) {
       setFormData(prev => ({
         ...prev,
-        features: [...(prev.features || []), featuresInput.trim()]
+        features: [...(prev.features || []), selectedFeature]
       }));
-      setFeaturesInput('');
+      setSelectedFeature('');
     }
   };
 
-  const handleRemoveFeature = (index: number) => {
+  const handleRemoveFeature = (featureToRemove: string) => {
     setFormData(prev => ({
       ...prev,
-      features: prev.features?.filter((_, i) => i !== index) || []
+      features: prev.features?.filter(f => f !== featureToRemove) || []
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
+  };
+
+  const getFeatureLabel = (value: string) => {
+    return AVAILABLE_FEATURES.find(f => f.value === value)?.label || value;
   };
 
   const categoryOptions = [
@@ -239,22 +266,27 @@ const CarForm = ({
 
       {/* Özellikler */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Özellikler</h2>
+        <h2 className="text-xl font-semibold mb-4">Araç Özellikleri</h2>
         
         <div className="flex gap-2 mb-4">
-          <Input
-            placeholder="Özellik ekleyin (örn: Klima, ABS)"
-            value={featuresInput}
-            onChange={(e) => setFeaturesInput(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddFeature();
-              }
-            }}
+          <Select
+            placeholder="Özellik seçin..."
+            value={selectedFeature}
+            onChange={(e) => setSelectedFeature(e.target.value)}
+            options={[
+              { value: '', label: 'Özellik seçin...' },
+              ...AVAILABLE_FEATURES.filter(
+                f => !formData.features?.includes(f.value)
+              )
+            ]}
             fullWidth
           />
-          <Button type="button" onClick={handleAddFeature} variant="secondary">
+          <Button 
+            type="button" 
+            onClick={handleAddFeature} 
+            variant="secondary"
+            disabled={!selectedFeature}
+          >
             Ekle
           </Button>
         </div>
@@ -266,11 +298,11 @@ const CarForm = ({
                 key={index}
                 className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
               >
-                {feature}
+                {getFeatureLabel(feature)}
                 <button
                   type="button"
-                  onClick={() => handleRemoveFeature(index)}
-                  className="text-blue-600 hover:text-blue-800"
+                  onClick={() => handleRemoveFeature(feature)}
+                  className="text-blue-600 hover:text-blue-800 font-bold"
                 >
                   ×
                 </button>
