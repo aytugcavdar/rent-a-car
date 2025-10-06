@@ -1,13 +1,16 @@
 // frontend/src/features/admin/pages/AdminDashboard.tsx
 import { Link } from 'react-router-dom';
 import { useGetCarsQuery } from '../../cars/api/carsApi';
-import { Loading } from '../../../shared/components/ui/feedback'; 
+import { useGetAllBookingsQuery } from '../../booking/api/bookingApi';
+import { Loading } from '../../../shared/components/ui/feedback';
 
 const AdminDashboard = () => {
   // API'lerden verileri çek
   const { data: carsData, isLoading: carsLoading } = useGetCarsQuery();
+  const { data: bookingsData, isLoading: bookingsLoading } = useGetAllBookingsQuery({ limit: 1000 });
 
   const cars = carsData?.data || [];
+  const bookings = bookingsData?.data?.bookings || [];
 
   // İstatistikleri hesapla
   const stats = {
@@ -15,9 +18,13 @@ const AdminDashboard = () => {
     availableCars: cars.filter((car) => car.status === 'available').length,
     rentedCars: cars.filter((car) => car.status === 'rented').length,
     maintenanceCars: cars.filter((car) => car.status === 'maintenance').length,
+    totalBookings: bookings.length,
+    pendingBookings: bookings.filter((b) => b.status === 'pending').length,
+    activeBookings: bookings.filter((b) => b.status === 'active').length,
+    completedBookings: bookings.filter((b) => b.status === 'completed').length,
   };
 
-  if (carsLoading) {
+  if (carsLoading || bookingsLoading) {
     return <Loading message="Dashboard yükleniyor..." />;
   }
 
@@ -46,16 +53,16 @@ const AdminDashboard = () => {
       link: '/admin/cars',
     },
     {
-        title: 'Kiralanan Araçlar',
-        value: stats.rentedCars,
-        icon: (
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
-        color: 'bg-yellow-500',
-        link: '/admin/cars',
-      },
+      title: 'Kiralanan Araçlar',
+      value: stats.rentedCars,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: 'bg-yellow-500',
+      link: '/admin/cars',
+    },
     {
       title: 'Bakımdaki Araçlar',
       value: stats.maintenanceCars,
@@ -67,8 +74,51 @@ const AdminDashboard = () => {
       ),
       color: 'bg-red-500',
       link: '/admin/cars',
-    }
-    
+    },
+    {
+      title: 'Toplam Rezervasyon',
+      value: stats.totalBookings,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      ),
+      color: 'bg-purple-500',
+      link: '/admin/bookings',
+    },
+    {
+      title: 'Bekleyen Rezervasyonlar',
+      value: stats.pendingBookings,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: 'bg-orange-500',
+      link: '/admin/bookings',
+    },
+    {
+      title: 'Aktif Rezervasyonlar',
+      value: stats.activeBookings,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      color: 'bg-indigo-500',
+      link: '/admin/bookings',
+    },
+    {
+      title: 'Tamamlanan Rezervasyonlar',
+      value: stats.completedBookings,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: 'bg-teal-500',
+      link: '/admin/bookings',
+    },
   ];
 
   return (
@@ -99,35 +149,67 @@ const AdminDashboard = () => {
       </div>
 
       {/* Hızlı Aksiyonlar */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Hızlı İşlemler</h2>
-        
-        <div className="space-y-3">
-          <Link
-            to="/admin/cars/new"
-            className="flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-          >
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <div>
-              <p className="font-semibold text-gray-900">Yeni Araç Ekle</p>
-              <p className="text-sm text-gray-600">Sisteme yeni araç kaydet</p>
-            </div>
-          </Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Araç Yönetimi</h2>
+          <div className="space-y-3">
+            <Link
+              to="/admin/cars/new"
+              className="flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <div>
+                <p className="font-semibold text-gray-900">Yeni Araç Ekle</p>
+                <p className="text-sm text-gray-600">Sisteme yeni araç kaydet</p>
+              </div>
+            </Link>
 
-          <Link
-            to="/admin/cars"
-            className="flex items-center space-x-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-          >
-            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
-            <div>
-              <p className="font-semibold text-gray-900">Araç Listesi</p>
-              <p className="text-sm text-gray-600">Tüm araçları görüntüle ve düzenle</p>
-            </div>
-          </Link>
+            <Link
+              to="/admin/cars"
+              className="flex items-center space-x-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <div>
+                <p className="font-semibold text-gray-900">Araç Listesi</p>
+                <p className="text-sm text-gray-600">Tüm araçları görüntüle ve düzenle</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Rezervasyon Yönetimi</h2>
+          <div className="space-y-3">
+            <Link
+              to="/admin/bookings"
+              className="flex items-center space-x-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <div>
+                <p className="font-semibold text-gray-900">Rezervasyon Listesi</p>
+                <p className="text-sm text-gray-600">Tüm rezervasyonları görüntüle</p>
+              </div>
+            </Link>
+
+            <Link
+              to="/admin/users"
+              className="flex items-center space-x-3 p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <div>
+                <p className="font-semibold text-gray-900">Kullanıcı Yönetimi</p>
+                <p className="text-sm text-gray-600">Kullanıcıları görüntüle ve yönet</p>
+              </div>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -26,6 +26,11 @@ import CarsPage from './features/cars/pages/CarList';
 import CarDetailPage from './features/cars/pages/CarDetail';
 import CarComparePage from './features/cars/pages/CarComparePage';
 
+// Booking Sayfaları
+import BookingList from './features/booking/pages/BookingList';
+import BookingDetail from './features/booking/pages/BookingDetail';
+import CreateBooking from './features/booking/pages/CreateBooking';
+
 // Admin Layout
 import AdminLayout from './features/admin/layout/AdminLayout';
 
@@ -35,6 +40,8 @@ import UserManagementPage from './features/admin/pages/UserManagement';
 import CarManagementPage from './features/admin/pages/CarManagement';
 import NewCarPage from './features/admin/pages/NewCarPage';
 import EditCarPage from './features/admin/pages/EditCarPage';
+import AdminBookingManagement from './features/admin/pages/AdminBookingManagement';
+import AdminBookingDetail from './features/admin/pages/AdminBookingDetail';
 
 function App() {
   return (
@@ -61,8 +68,9 @@ function App() {
               {/* Sadece Giriş Yapmış Kullanıcıların Erişebileceği Rotalar */}
               <Route element={<ProtectedRoute />}>
                 {/* <Route path="profile" element={<ProfilePage />} /> */}
-                {/* <Route path="bookings" element={<BookingsPage />} /> */}
-                {/* <Route path="bookings/new" element={<NewBookingPage />} /> */}
+                <Route path="/bookings" element={<BookingList />} />
+                <Route path="/bookings/:id" element={<BookingDetail />} />
+                <Route path="/booking/create/:carId" element={<CreateBooking />} />
               </Route>
               
               {/* Bulunamayan Sayfalar İçin */}
@@ -83,10 +91,8 @@ function App() {
                 <Route path="users" element={<UserManagementPage />} />
                 
                 {/* Rezervasyon Yönetimi (Placeholder) */}
-                <Route path="bookings" element={<div className="p-6 bg-white rounded-lg shadow-md">
-                  <h1 className="text-2xl font-bold mb-4">Rezervasyonlar Sayfası</h1>
-                  <p className="text-gray-600">Bu sayfa yakında eklenecek...</p>
-                </div>} />
+                  <Route path="/admin/bookings" element={<AdminBookingManagement />} />
+                  <Route path="/admin/bookings/:id" element={<AdminBookingDetail />} />
               </Route>
             </Route>
           </Routes>

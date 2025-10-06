@@ -1,63 +1,59 @@
+// shared-utils/validators/bookingValidators.js
 const Joi = require('joi');
 
 class BookingValidators {
-  // Yeni bir rezervasyon oluştururken kullanılacak doğrulama şeması
-  static createBookingSchema = Joi.object({
-    carId: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/) // MongoDB'nin ObjectId formatına uygun olmalı
-      .required()
-      .messages({
-        'string.pattern.base': 'Geçersiz araç ID formatı.',
-        'any.required': 'Araç seçimi zorunludur.'
+  static createBookingSchema = {
+    body: Joi.object({
+      carId: Joi.string().required().messages({
+        'string.empty': 'Araç ID gereklidir',
+        'any.required': 'Araç ID gereklidir',
       }),
+      startDate: Joi.date().iso().required().messages({
+        'date.base': 'Geçerli bir alış tarihi giriniz',
+        'any.required': 'Alış tarihi gereklidir',
+      }),
+      endDate: Joi.date().iso().greater(Joi.ref('startDate')).required().messages({
+        'date.base': 'Geçerli bir teslim tarihi giriniz',
+        'date.greater': 'Teslim tarihi alış tarihinden sonra olmalıdır',
+        'any.required': 'Teslim tarihi gereklidir',
+      }),
+      pickupLocation: Joi.object({
+        branch: Joi.string().required().messages({
+          'string.empty': 'Alış şubesi gereklidir',
+          'any.required': 'Alış şubesi gereklidir',
+        }),
+        address: Joi.string().optional().allow(''),
+      }).required(),
+      returnLocation: Joi.object({
+        branch: Joi.string().required().messages({
+          'string.empty': 'Teslim şubesi gereklidir',
+          'any.required': 'Teslim şubesi gereklidir',
+        }),
+        address: Joi.string().optional().allow(''),
+      }).required(),
+      paymentInfo: Joi.object({
+        method: Joi.string().valid('credit_card', 'debit_card', 'cash', 'bank_transfer').required().messages({
+          'string.empty': 'Ödeme yöntemi gereklidir',
+          'any.required': 'Ödeme yöntemi gereklidir',
+          'any.only': 'Geçersiz ödeme yöntemi',
+        }),
+      }).required(),
+      notes: Joi.string().optional().allow(''),
+    }),
+  };
 
-    startDate: Joi.date()
-      .min('now') // Başlangıç tarihi bugünden önce olamaz
-      .required()
-      .messages({
-        'date.min': 'Başlangıç tarihi bugünden önce olamaz.',
-        'any.required': 'Başlangıç tarihi zorunludur.'
-      }),
-
-    endDate: Joi.date()
-      .greater(Joi.ref('startDate')) // Bitiş tarihi, başlangıç tarihinden sonra olmalı
-      .required()
-      .messages({
-        'date.greater': 'Bitiş tarihi başlangıç tarihinden sonra olmalıdır.',
-        'any.required': 'Bitiş tarihi zorunludur.'
-      }),
-      
-    pickupLocation: Joi.object({
-      branch: Joi.string().required().messages({
-        'any.required': 'Teslim alma şubesi zorunludur.'
-      }),
-      address: Joi.string(),
-    }).required(),
-
-    returnLocation: Joi.object({
-      branch: Joi.string().required().messages({
-        'any.required': 'İade şubesi zorunludur.'
-      }),
-      address: Joi.string(),
-    }).required(),
-    
-    paymentInfo: Joi.object({
-      method: Joi.string()
-        .valid('credit_card', 'debit_card', 'cash', 'bank_transfer')
+  static updateBookingStatusSchema = {
+    body: Joi.object({
+      status: Joi.string()
+        .valid('pending', 'confirmed', 'active', 'completed', 'cancelled')
         .required()
         .messages({
-          'any.only': 'Geçersiz ödeme yöntemi.',
-          'any.required': 'Ödeme yöntemi seçimi zorunludur.'
-        })
-    }).required(),
-
-    notes: Joi.string().max(1000).optional().messages({
-      'string.max': 'Not en fazla 1000 karakter olabilir.'
-    })
-  });
-
-  // Diğer doğrulama şemaları (güncelleme, iptal etme vb.) buraya eklenebilir
-  // static updateStatusSchema = Joi.object({ ... });
+          'string.empty': 'Durum gereklidir',
+          'any.required': 'Durum gereklidir',
+          'any.only': 'Geçersiz durum değeri',
+        }),
+    }),
+  };
 }
 
 module.exports = BookingValidators;

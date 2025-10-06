@@ -5,6 +5,7 @@ import storage from 'redux-persist/lib/storage'
 // Feature API slices
 import { authApi } from '../features/auth/api/authApi'
 import { carsApi } from '../features/cars/api/carsApi'
+import { bookingApi } from '../features/booking/api/bookingApi'
 
 // Feature slices
 import authReducer from '../features/auth/slice/authSlice'
@@ -23,6 +24,7 @@ export const store = configureStore({
     auth: persistedAuthReducer,
     [authApi.reducerPath]: authApi.reducer,
     [carsApi.reducerPath]: carsApi.reducer,
+    [bookingApi.reducerPath]: bookingApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -31,7 +33,8 @@ export const store = configureStore({
       },
     })
     .concat(authApi.middleware)
-    .concat(carsApi.middleware),
+    .concat(carsApi.middleware)
+    .concat(bookingApi.middleware)  ,
   devTools: process.env.NODE_ENV !== 'production',
 })
 
