@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../../../app/store';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 
 export interface Booking {
   _id: string;
@@ -69,7 +69,7 @@ export interface BookingResponse {
 export const bookingApi = createApi({
   reducerPath: 'bookingApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${API_URL}/api/bookings`,
+    baseUrl: `/api/bookings`,
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token;
       if (token) {

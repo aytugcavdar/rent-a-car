@@ -37,21 +37,21 @@ router.patch(
 router.get(
   '/admin/all',
   AuthMiddleware.verifyToken,
-  AuthMiddleware.isAdmin,
+  AuthMiddleware.requireRole(['admin']), 
   BookingController.getAllBookings
 );
 
 router.patch(
   '/:id/status',
   AuthMiddleware.verifyToken,
-  AuthMiddleware.isAdmin,
+  AuthMiddleware.requireRole(['admin']),
   BookingController.updateBookingStatus
 );
 
 router.delete(
   '/:id',
   AuthMiddleware.verifyToken,
-  AuthMiddleware.isAdmin,
+  AuthMiddleware.requireRole(['admin']), 
   BookingController.deleteBooking
 );
 
