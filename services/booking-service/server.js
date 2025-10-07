@@ -39,6 +39,7 @@ const startServer = async () => {
     app.listen(PORT, () => {
       logger.info(`Booking Service is running on port ${PORT}`);
     });
+    
   } catch (error) {
     logger.error('Failed to connect to MongoDB for Booking Service:', error);
     process.exit(1);
