@@ -1,45 +1,43 @@
 require("dotenv").config();
 const { rabbitmq, logger, helpers } = require("@rent-a-car/shared-utils");
-const { EmailHelper } = helpers; // EmailHelper'ı shared-utils'dan alıyoruz
+const { EmailHelper } = helpers;
 
 const QUEUE_NAME = "booking_created_queue";
 
 const startConsumer = async () => {
   try {
-    const connection = await rabbitmq.connection.connect();
-    const channel = await connection.createChannel();
-
-    await channel.assertQueue(QUEUE_NAME, { durable: true });
-
-    logger.info(`[*] Waiting for messages in ${QUEUE_NAME}.`);
-
-    channel.consume(QUEUE_NAME, async (msg) => {
-      if (msg !== null) {
-        const bookingDetails = JSON.parse(msg.content.toString());
-
+    // Shared consumer helper kullan
+    await rabbitmq.consumer.consume(
+      QUEUE_NAME,
+      async (bookingDetails) => {
         logger.info(
-          `[✔] Received new booking notification request: Booking ID ${bookingDetails.bookingId}`
+          `[✔] Processing booking notification: Booking ID ${bookingDetails.bookingId}`
         );
 
         try {
-          // Merkezi EmailHelper'ı çağırıyoruz
           await EmailHelper.sendEmail({
             email: bookingDetails.userEmail,
             subject: `Rezervasyon Onayı - No: ${bookingDetails.bookingId}`,
             message: `Merhaba, ${bookingDetails.carInfo} aracınız için rezervasyonunuz başarıyla alınmıştır.`,
           });
+          
+          logger.info(`[✓] Email sent successfully for booking ${bookingDetails.bookingId}`);
         } catch (error) {
           logger.error(
             `Failed to send email for booking ${bookingDetails.bookingId}:`,
             error
           );
+          throw error;
         }
-
-        channel.ack(msg);
+      },
+      {
+        prefetch: 5, // Aynı anda max 5 mesaj işle
       }
-    });
+    );
+
+    logger.info(`[✓] Notification consumer started: ${QUEUE_NAME}`);
   } catch (error) {
-    logger.error("Notification service consumer failed:", error);
+    logger.error("Notification consumer failed:", error);
     process.exit(1);
   }
 };
