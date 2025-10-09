@@ -21,6 +21,10 @@ import LoginPage from './features/auth/pages/Login';
 import RegisterPage from './features/auth/pages/Register';
 import VerifyEmailPage from './features/auth/pages/VerifyEmailPage';
 
+// Profile Sayfaları
+import ProfilePage from './features/profile/pages/Profile';
+import EditProfilePage from './features/profile/pages/EditProfile';
+
 // Car Sayfaları
 import CarsPage from './features/cars/pages/CarList';
 import CarDetailPage from './features/cars/pages/CarDetail';
@@ -67,7 +71,8 @@ function App() {
               
               {/* Sadece Giriş Yapmış Kullanıcıların Erişebileceği Rotalar */}
               <Route element={<ProtectedRoute />}>
-                {/* <Route path="profile" element={<ProfilePage />} /> */}
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="profile/edit" element={<EditProfilePage />} />
                 <Route path="/bookings" element={<BookingList />} />
                 <Route path="/bookings/:id" element={<BookingDetail />} />
                 <Route path="/booking/create/:carId" element={<CreateBooking />} />
@@ -90,9 +95,9 @@ function App() {
                 {/* Kullanıcı Yönetimi */}
                 <Route path="users" element={<UserManagementPage />} />
                 
-                {/* Rezervasyon Yönetimi (Placeholder) */}
-                  <Route path="/admin/bookings" element={<AdminBookingManagement />} />
-                  <Route path="/admin/bookings/:id" element={<AdminBookingDetail />} />
+                {/* Rezervasyon Yönetimi */}
+                <Route path="/admin/bookings" element={<AdminBookingManagement />} />
+                <Route path="/admin/bookings/:id" element={<AdminBookingDetail />} />
               </Route>
             </Route>
           </Routes>

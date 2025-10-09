@@ -1,8 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const AuthController = require('../controllers/authController');
+const ProfileController = require('../controllers/profileController');
 
-// Relative path kullan
 const { validators, middleware } = require('@rent-a-car/shared-utils');
 
 const { UserValidators } = validators;
@@ -26,7 +26,9 @@ const upload = multer({
   }
 });
 
-// POST /api/auth/register - Kullanıcı kaydı + E-posta doğrulama
+// ==================== AUTH ROUTES ====================
+
+// POST /api/auth/register - Kullanıcı kaydı
 router.post(
   '/register',
   upload.single('avatar'),
@@ -34,7 +36,7 @@ router.post(
   AuthController.register
 );
 
-// POST /api/auth/login - Kullanıcı girişi + Cookie
+// POST /api/auth/login - Kullanıcı girişi
 router.post(
   '/login',
   ValidationMiddleware.validateRequest(UserValidators.loginSchema),
@@ -55,22 +57,46 @@ router.post(
   AuthController.resendVerificationEmail
 );
 
-// POST /api/auth/forgot-password - Şifre sıfırlama talebi
-/* 
-router.post(
-  '/forgot-password',
-  ValidationMiddleware.validateRequest(UserValidators.forgotPasswordSchema),
-  AuthController.forgotPassword
-);
- */
-
 // POST /api/auth/logout - Çıkış yap
 router.post('/logout', AuthController.logout);
 
-// GET /api/auth/me - Kullanıcı bilgilerini getir (Authentication gerekli)
-/* 
-router.get('/me', AuthMiddleware.verifyToken, AuthController.getMe);
- */
-router.get('/users', AuthMiddleware.verifyToken, AuthMiddleware.requireRole(['admin']), AuthController.getAllUsers);
+// GET /api/auth/users - Tüm kullanıcıları getir (Admin)
+router.get(
+  '/users',
+  AuthMiddleware.verifyToken,
+  AuthMiddleware.requireRole(['admin']),
+  AuthController.getAllUsers
+);
+
+// ==================== PROFILE ROUTES ====================
+
+// GET /api/auth/me - Kullanıcı bilgilerini getir
+router.get(
+  '/me',
+  AuthMiddleware.verifyToken,
+  ProfileController.getProfile
+);
+
+// PUT /api/auth/profile - Profil bilgilerini güncelle
+router.put(
+  '/profile',
+  AuthMiddleware.verifyToken,
+  ProfileController.updateProfile
+);
+
+// POST /api/auth/avatar - Avatar yükle
+router.post(
+  '/avatar',
+  AuthMiddleware.verifyToken,
+  upload.single('avatar'),
+  ProfileController.uploadAvatar
+);
+
+// PUT /api/auth/change-password - Şifre değiştir
+router.put(
+  '/change-password',
+  AuthMiddleware.verifyToken,
+  ProfileController.changePassword
+);
 
 module.exports = router;
