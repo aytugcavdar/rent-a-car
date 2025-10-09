@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../../../app/store';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 interface UpdateProfileData {
   name?: string;
@@ -33,12 +32,12 @@ interface User {
   isEmailVerified: boolean;
   createdAt: string;
   updatedAt: string;
-}
+  }
 
 export const profileApi = createApi({
   reducerPath: 'profileApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${API_URL}/auth`,
+    baseUrl: `/api/auth`,
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token;
       if (token) {
