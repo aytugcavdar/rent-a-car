@@ -15,6 +15,7 @@ const NewCarPage = () => {
       toast.success('Araç başarıyla eklendi!');
       navigate('/admin/cars');
     } catch (error: any) {
+      console.log(error);
       const errorMessage = error?.data?.message || 'Araç eklenirken bir hata oluştu.';
       toast.error(errorMessage);
       console.error('Araç ekleme hatası:', error);

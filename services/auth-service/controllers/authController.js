@@ -48,8 +48,34 @@ class AuthController {
    * @access  Public
    */
   static register = asyncHandler(async (req, res) => {
-    const { name, surname, email, password, phone, driverLicense, address } = req.body;
-    console.log('Kayıt isteği alındı:', { name, surname, email, phone, driverLicense, address });
+    const { 
+      name, 
+      surname, 
+      email, 
+      password, 
+      phone, 
+      address,
+      licenseNumber,
+      licenseIssuedDate,
+      licenseExpirationDate
+    } = req.body;
+    
+    
+    const driverLicense = {
+      number: licenseNumber,
+      issuedDate: licenseIssuedDate,
+      expirationDate: licenseExpirationDate
+    };
+
+    console.log('Kayıt isteği alındı:', { 
+      name, 
+      surname, 
+      email, 
+      phone, 
+      driverLicense, 
+      address 
+    });
+
     let avatarUrl = null;
 
     // Profil resmi yükleme
@@ -96,7 +122,7 @@ class AuthController {
       isEmailVerified: false
     });
 
-    // Doğrulama maili gönder (DÜZELTİLMİŞ)
+    // Doğrulama maili gönder
     try {
       const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${emailVerificationToken}&email=${email}`;
       
@@ -289,13 +315,13 @@ class AuthController {
       ResponseFormatter.success({}, 'Başarıyla çıkış yapıldı.')
     );
   });
+
   /**
    * @desc    Tüm kullanıcıları getir (admin)
    * @route   GET /api/auth/users
    * @access  Private/Admin
    */
   static getAllUsers = asyncHandler(async (req, res) => {
-    // Şifre gibi hassas bilgileri dışarıda bırakarak tüm kullanıcıları bul
     const users = await User.find({}).select('-password');
 
     res.status(httpStatus.OK).json(

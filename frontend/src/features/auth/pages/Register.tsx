@@ -62,7 +62,7 @@ const Register = () => {
       return
     }
 
-    // FormData oluştur (dosya upload için)
+    // ✅ FormData oluştur - düzleştirilmiş yapı
     const submitData = new FormData()
     submitData.append('name', formData.name)
     submitData.append('surname', formData.surname)
@@ -71,12 +71,10 @@ const Register = () => {
     submitData.append('phone', formData.phone)
     submitData.append('address', formData.address)
     
-    // Driver License JSON olarak gönder
-    submitData.append('driverLicense', JSON.stringify({
-      number: formData.licenseNumber,
-      issuedDate: formData.licenseIssuedDate,
-      expirationDate: formData.licenseExpirationDate,
-    }))
+    // ✅ Driver License alanlarını düz olarak ekle
+    submitData.append('licenseNumber', formData.licenseNumber)
+    submitData.append('licenseIssuedDate', formData.licenseIssuedDate)
+    submitData.append('licenseExpirationDate', formData.licenseExpirationDate)
 
     if (avatar) {
       submitData.append('avatar', avatar)

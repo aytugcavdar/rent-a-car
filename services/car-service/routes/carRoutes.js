@@ -19,5 +19,21 @@ router.post(
   ValidationMiddleware.validateRequest(CarValidators.createCarSchema),
   CarController.createCar
 );
+router.put(
+  '/:id',
+  AuthMiddleware.verifyToken,
+  AuthMiddleware.requireRole(['admin']),
+  ValidationMiddleware.validateObjectId('id'),
+  ValidationMiddleware.validateRequest(CarValidators.updateCarSchema),
+  CarController.updateCar
+);
+
+router.delete(
+  '/:id',
+  AuthMiddleware.verifyToken,
+  AuthMiddleware.requireRole(['admin']),
+  ValidationMiddleware.validateObjectId('id'),
+  CarController.deleteCar
+);
 
 module.exports = router;
