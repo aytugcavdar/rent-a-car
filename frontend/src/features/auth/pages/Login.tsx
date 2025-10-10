@@ -17,33 +17,50 @@ const Login = () => {
     password: '',
   })
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     })
-    setError('') // Hata mesajını temizle
+    setError('')
+    setFieldErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors[name]
+      return newErrors
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
 
     try {
       const response = await login(formData).unwrap()
       
-      // Redux store'a kullanıcı bilgilerini kaydet
       dispatch(setCredentials({
         user: response.data.user,
         token: response.data.token,
       }))
 
-      // Ana sayfaya yönlendir
       navigate('/')
     } catch (err: any) {
       console.error('Login error:', err)
-      setError(err?.data?.message || 'Giriş yapılırken bir hata oluştu.')
+      
+      // Validation hataları
+      if (err?.data?.errors && Array.isArray(err.data.errors)) {
+        const errors: Record<string, string> = {}
+        err.data.errors.forEach((error: { field: string; message: string }) => {
+          errors[error.field] = error.message
+        })
+        setFieldErrors(errors)
+        setError('Lütfen formdaki hataları düzeltin.')
+      } else {
+        setError(err?.data?.message || 'Giriş yapılırken bir hata oluştu.')
+      }
     }
   }
 
@@ -81,6 +98,7 @@ const Login = () => {
               placeholder="ornek@email.com"
               required
               fullWidth
+              error={fieldErrors.email}
               icon={
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -97,6 +115,7 @@ const Login = () => {
               placeholder="••••••••"
               required
               fullWidth
+              error={fieldErrors.password}
               icon={
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -135,7 +154,7 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Social Login (Optional) */}
+          {/* Social Login */}
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -147,7 +166,7 @@ const Login = () => {
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              <button type="button" className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -157,7 +176,7 @@ const Login = () => {
                 <span className="ml-2 text-sm font-medium text-gray-700">Google</span>
               </button>
 
-              <button className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              <button type="button" className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>

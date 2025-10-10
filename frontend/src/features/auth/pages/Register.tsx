@@ -25,14 +25,22 @@ const Register = () => {
   const [avatar, setAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     })
+    // İlgili alanın hatasını temizle
     setError('')
+    setFieldErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors[name]
+      return newErrors
+    })
   }
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,19 +58,15 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
 
-    // Şifre kontrolü
+    // Frontend validation
     if (formData.password !== formData.passwordConfirm) {
-      setError('Şifreler eşleşmiyor!')
+      setFieldErrors({ passwordConfirm: 'Şifreler eşleşmiyor!' })
       return
     }
 
-    if (formData.password.length < 8) {
-      setError('Şifre en az 8 karakter olmalıdır!')
-      return
-    }
-
-    // ✅ FormData oluştur - düzleştirilmiş yapı
+    // FormData oluştur
     const submitData = new FormData()
     submitData.append('name', formData.name)
     submitData.append('surname', formData.surname)
@@ -70,8 +74,6 @@ const Register = () => {
     submitData.append('password', formData.password)
     submitData.append('phone', formData.phone)
     submitData.append('address', formData.address)
-    
-    // ✅ Driver License alanlarını düz olarak ekle
     submitData.append('licenseNumber', formData.licenseNumber)
     submitData.append('licenseIssuedDate', formData.licenseIssuedDate)
     submitData.append('licenseExpirationDate', formData.licenseExpirationDate)
@@ -84,13 +86,23 @@ const Register = () => {
       await register(submitData).unwrap()
       setSuccess(true)
       
-      // 3 saniye sonra email doğrulama sayfasına yönlendir
       setTimeout(() => {
         navigate('/verify-email', { state: { email: formData.email } })
       }, 3000)
     } catch (err: any) {
       console.error('Register error:', err)
-      setError(err?.data?.message || 'Kayıt olurken bir hata oluştu.')
+      
+      // Backend validation hatalarını işle
+      if (err?.data?.errors && Array.isArray(err.data.errors)) {
+        const errors: Record<string, string> = {}
+        err.data.errors.forEach((error: { field: string; message: string }) => {
+          errors[error.field] = error.message
+        })
+        setFieldErrors(errors)
+        setError('Lütfen formdaki hataları düzeltin.')
+      } else {
+        setError(err?.data?.message || 'Kayıt olurken bir hata oluştu.')
+      }
     }
   }
 
@@ -178,6 +190,7 @@ const Register = () => {
                 placeholder="Adınız"
                 required
                 fullWidth
+                error={fieldErrors.name}
               />
 
               <Input
@@ -189,6 +202,7 @@ const Register = () => {
                 placeholder="Soyadınız"
                 required
                 fullWidth
+                error={fieldErrors.surname}
               />
             </div>
 
@@ -201,6 +215,7 @@ const Register = () => {
               placeholder="ornek@email.com"
               required
               fullWidth
+              error={fieldErrors.email}
             />
 
             <Input
@@ -212,6 +227,8 @@ const Register = () => {
               placeholder="+90 555 123 4567"
               required
               fullWidth
+              error={fieldErrors.phone}
+              helperText="Örnek: +905551234567 veya 05551234567"
             />
 
             <Input
@@ -220,9 +237,10 @@ const Register = () => {
               name="address"
               value={formData.address}
               onChange={handleChange}
-              placeholder="Tam adresiniz"
+              placeholder="Tam adresiniz (en az 10 karakter)"
               required
               fullWidth
+              error={fieldErrors.address}
             />
 
             {/* Driver License Info */}
@@ -239,6 +257,7 @@ const Register = () => {
                   placeholder="12345678"
                   required
                   fullWidth
+                  error={fieldErrors.licenseNumber}
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -250,6 +269,8 @@ const Register = () => {
                     onChange={handleChange}
                     required
                     fullWidth
+                    error={fieldErrors.licenseIssuedDate}
+                    max={new Date().toISOString().split('T')[0]}
                   />
 
                   <Input
@@ -260,6 +281,8 @@ const Register = () => {
                     onChange={handleChange}
                     required
                     fullWidth
+                    error={fieldErrors.licenseExpirationDate}
+                    min={formData.licenseIssuedDate || undefined}
                   />
                 </div>
               </div>
@@ -279,7 +302,8 @@ const Register = () => {
                   placeholder="En az 8 karakter"
                   required
                   fullWidth
-                  helperText="Şifreniz en az 8 karakter olmalıdır"
+                  error={fieldErrors.password}
+                  helperText="En az bir küçük harf, bir büyük harf ve bir rakam içermelidir"
                 />
 
                 <Input
@@ -291,6 +315,7 @@ const Register = () => {
                   placeholder="Şifrenizi tekrar girin"
                   required
                   fullWidth
+                  error={fieldErrors.passwordConfirm}
                 />
               </div>
             </div>
